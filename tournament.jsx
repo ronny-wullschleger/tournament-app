@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 
 /* ───────────────────────── helpers ───────────────────────── */
-const STORAGE_KEY = "rr-tournament-v2";
+const STORAGE_KEY = "rr-tournaments-v3";
 
 const shuffle = (arr) => {
   const a = [...arr];
@@ -62,21 +62,31 @@ const generateRoundRobin = (teams) => {
 };
 
 /* ───────────────────────── storage ───────────────────────── */
-const save = async (state) => {
+const save = async (envelope) => {
   try {
-    await window.storage.set(STORAGE_KEY, JSON.stringify(state));
+    await window.storage.set(STORAGE_KEY, JSON.stringify(envelope));
   } catch (e) {
     console.error("Save failed", e);
   }
 };
 
-const load = async () => {
+const migrateIfNeeded = async () => {
   try {
-    const r = await window.storage.get(STORAGE_KEY);
-    return r ? JSON.parse(r.value) : null;
+    const v3 = await window.storage.get(STORAGE_KEY);
+    if (v3) return JSON.parse(v3.value);
+    const v2 = await window.storage.get("rr-tournament-v2");
+    if (v2) {
+      const migrated = {
+        tournaments: [{ id: uid(), createdAt: Date.now(), ...JSON.parse(v2.value) }],
+        activeId: null,
+      };
+      await window.storage.set(STORAGE_KEY, JSON.stringify(migrated));
+      return migrated;
+    }
   } catch {
-    return null;
+    // fall through to default
   }
+  return { tournaments: [], activeId: null };
 };
 
 /* ───────────────────────── constants ───────────────────────── */
@@ -180,7 +190,7 @@ const Input = ({ value, onChange, placeholder, style: extra, type = "text" }) =>
 );
 
 /* ──── Setup Phase ──── */
-const SetupView = ({ onStart }) => {
+const SetupView = ({ onStart, onCancel }) => {
   const [teams, setTeams] = useState(["", "", "", ""]);
   const [name, setName] = useState("Tournament");
 
@@ -199,6 +209,27 @@ const SetupView = ({ onStart }) => {
 
   return (
     <div style={{ maxWidth: 540, margin: "0 auto" }}>
+      {onCancel && (
+        <div style={{ marginBottom: 20 }}>
+          <button
+            onClick={onCancel}
+            style={{
+              background: "none",
+              border: "none",
+              color: COLORS.textSecondary,
+              cursor: "pointer",
+              fontSize: 13,
+              fontFamily: "'DM Sans', sans-serif",
+              padding: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            ← Back to list
+          </button>
+        </div>
+      )}
       <div style={{ textAlign: "center", marginBottom: 40 }}>
         <div style={{ fontSize: 48, marginBottom: 8 }}>⚽</div>
         <h1
@@ -468,52 +499,128 @@ const WinnerBanner = ({ name }) => (
   </div>
 );
 
+/* ──── Tournament List View ──── */
+const phaseBadgeColor = (phase) =>
+  phase === PHASES.DONE ? COLORS.gold : COLORS.accent;
+
+const phaseLabel = (phase) => {
+  if (phase === PHASES.GROUP) return "Group Stage";
+  if (phase === PHASES.SEMI) return "Semifinals";
+  if (phase === PHASES.FINAL) return "Finals";
+  if (phase === PHASES.DONE) return "Completed";
+  return phase;
+};
+
+const TournamentListView = ({ tournaments, onSelect, onCreateNew }) => {
+  const sorted = [...tournaments].sort((a, b) => b.createdAt - a.createdAt);
+
+  return (
+    <div style={{ maxWidth: 640, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", color: COLORS.textPrimary, margin: 0, fontSize: 26 }}>
+          All Tournaments
+        </h2>
+        <Button onClick={onCreateNew}>＋ New Tournament</Button>
+      </div>
+
+      {sorted.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "80px 0" }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>⚽</div>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", color: COLORS.textPrimary, margin: "0 0 8px" }}>No Tournament Yet</h2>
+          <p style={{ color: COLORS.textSecondary, marginBottom: 24 }}>Create your first tournament to get started</p>
+          <Button onClick={onCreateNew}>＋ New Tournament</Button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {sorted.map((t) => (
+            <Card key={t.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                  <span style={{ color: COLORS.textPrimary, fontWeight: 700, fontSize: 16 }}>{t.name}</span>
+                  <Badge color={phaseBadgeColor(t.phase)}>{phaseLabel(t.phase)}</Badge>
+                </div>
+                <div style={{ color: COLORS.textDim, fontSize: 12 }}>
+                  {new Date(t.createdAt).toLocaleDateString()}
+                  {t.phase === PHASES.DONE && t.winner && (
+                    <span style={{ marginLeft: 12, color: COLORS.gold }}>🏆 {t.winner}</span>
+                  )}
+                </div>
+              </div>
+              <Button small variant="secondary" onClick={() => onSelect(t.id)}>View →</Button>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ──────────────────── MAIN APP ──────────────────── */
 export default function TournamentApp() {
-  const [state, setState] = useState(null);
+  const [tournaments, setTournaments] = useState([]);
+  const [activeId, setActiveId] = useState(null);
   const [view, setView] = useState("public"); // "admin" | "public"
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("standings"); // "standings" | "matches" | "knockout"
 
-  // Load
+  // Load (with migration)
   useEffect(() => {
     (async () => {
-      const d = await load();
-      if (d) setState(d);
+      const data = await migrateIfNeeded();
+      setTournaments(data.tournaments);
+      setActiveId(data.activeId);
       setLoading(false);
     })();
   }, []);
 
   // Save on change
   useEffect(() => {
-    if (state) save(state);
-  }, [state]);
+    if (!loading) save({ tournaments, activeId });
+  }, [tournaments, activeId, loading]);
+
+  // Derived active tournament
+  const activeTournament = tournaments.find((t) => t.id === activeId) ?? null;
+
+  // Private update helper
+  const updateActive = (updater) =>
+    setTournaments((prev) => prev.map((t) => t.id === activeId ? { ...t, ...updater(t) } : t));
 
   const getTopFour = () => {
-    if (!state) return [];
-    return computeTeamStats(state.teams, state.rounds).slice(0, 4);
+    if (!activeTournament) return [];
+    return computeTeamStats(activeTournament.teams, activeTournament.rounds).slice(0, 4);
   };
 
   const allGroupMatchesPlayed = useMemo(() => {
-    if (!state || !state.rounds) return false;
-    return state.rounds.every((r) => r.matches.every((m) => m.played));
-  }, [state]);
+    if (!activeTournament || !activeTournament.rounds) return false;
+    return activeTournament.rounds.every((r) => r.matches.every((m) => m.played));
+  }, [activeTournament]);
 
   const allSemiPlayed = useMemo(() => {
-    if (!state || !state.semis) return false;
-    return state.semis.every((m) => m.played);
-  }, [state]);
+    if (!activeTournament || !activeTournament.semis) return false;
+    return activeTournament.semis.every((m) => m.played);
+  }, [activeTournament]);
 
   /* ── Actions ── */
   const handleStart = (name, teams) => {
-    const rounds = generateRoundRobin(teams);
-    setState({ name, teams, rounds, phase: PHASES.GROUP, semis: null, final: null, thirdPlace: null, winner: null });
+    const newT = {
+      id: uid(),
+      createdAt: Date.now(),
+      name,
+      teams,
+      rounds: generateRoundRobin(teams),
+      phase: PHASES.GROUP,
+      semis: null,
+      final: null,
+      thirdPlace: null,
+      winner: null,
+    };
+    setTournaments((prev) => [...prev, newT]);
+    setActiveId(newT.id);
     setTab("matches");
   };
 
   const handleScoreSave = (matchId, hs, as_) => {
-    setState((prev) => ({
-      ...prev,
+    updateActive((prev) => ({
       rounds: prev.rounds.map((r) => ({
         ...r,
         matches: r.matches.map((m) =>
@@ -525,18 +632,16 @@ export default function TournamentApp() {
 
   const handleGenerateSemis = () => {
     const top4 = getTopFour();
-    // 1 vs 4, 2 vs 3
     const semis = [
       createMatch("SF1", top4[0].id, top4[3].id),
       createMatch("SF2", top4[1].id, top4[2].id),
     ];
-    setState((prev) => ({ ...prev, phase: PHASES.SEMI, semis }));
+    updateActive(() => ({ phase: PHASES.SEMI, semis }));
     setTab("knockout");
   };
 
   const handleSemiSave = (matchId, hs, as_) => {
-    setState((prev) => ({
-      ...prev,
+    updateActive((prev) => ({
       semis: prev.semis.map((m) =>
         m.id === matchId ? { ...m, homeScore: hs, awayScore: as_, played: true } : m
       ),
@@ -544,17 +649,20 @@ export default function TournamentApp() {
   };
 
   const handleGenerateFinal = () => {
-    const w1 = state.semis[0].homeScore > state.semis[0].awayScore ? state.semis[0].home : state.semis[0].away;
-    const w2 = state.semis[1].homeScore > state.semis[1].awayScore ? state.semis[1].home : state.semis[1].away;
-    const l1 = state.semis[0].homeScore > state.semis[0].awayScore ? state.semis[0].away : state.semis[0].home;
-    const l2 = state.semis[1].homeScore > state.semis[1].awayScore ? state.semis[1].away : state.semis[1].home;
-    const finalMatch = createMatch("F1", w1, w2);
-    const thirdPlace = createMatch("3RD", l1, l2);
-    setState((prev) => ({ ...prev, phase: PHASES.FINAL, final: finalMatch, thirdPlace }));
+    const s = activeTournament.semis;
+    const w1 = s[0].homeScore > s[0].awayScore ? s[0].home : s[0].away;
+    const w2 = s[1].homeScore > s[1].awayScore ? s[1].home : s[1].away;
+    const l1 = s[0].homeScore > s[0].awayScore ? s[0].away : s[0].home;
+    const l2 = s[1].homeScore > s[1].awayScore ? s[1].away : s[1].home;
+    updateActive(() => ({
+      phase: PHASES.FINAL,
+      final: createMatch("F1", w1, w2),
+      thirdPlace: createMatch("3RD", l1, l2),
+    }));
   };
 
   const handleFinalSave = (matchId, hs, as_) => {
-    setState((prev) => {
+    updateActive((prev) => {
       const final = matchId === "F1"
         ? { ...prev.final, homeScore: hs, awayScore: as_, played: true }
         : prev.final;
@@ -564,12 +672,14 @@ export default function TournamentApp() {
       const bothPlayed = final?.played && thirdPlace?.played;
       const winnerId = bothPlayed ? (final.homeScore > final.awayScore ? final.home : final.away) : null;
       const winner = winnerId ? prev.teams.find((t) => t.id === winnerId)?.name ?? null : null;
-      return { ...prev, final, thirdPlace, ...(bothPlayed ? { phase: PHASES.DONE, winner } : {}) };
+      return { final, thirdPlace, ...(bothPlayed ? { phase: PHASES.DONE, winner } : {}) };
     });
   };
 
-  const handleReset = () => {
-    setState(null);
+  const handleDelete = () => {
+    if (!window.confirm(`Delete "${activeTournament.name}"? This cannot be undone.`)) return;
+    setTournaments((prev) => prev.filter((t) => t.id !== activeId));
+    setActiveId(null);
     setTab("standings");
   };
 
@@ -611,13 +721,34 @@ export default function TournamentApp() {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: 22 }}>⚽</span>
-          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 18, color: COLORS.textPrimary }}>
-            {state?.name || "Tournament"}
-          </span>
-          {state && (
-            <Badge color={state.phase === PHASES.DONE ? COLORS.gold : COLORS.accent}>
-              {state.phase === PHASES.GROUP ? "Group Stage" : state.phase === PHASES.SEMI ? "Semifinals" : state.phase === PHASES.FINAL ? "Finals" : state.phase === PHASES.DONE ? "Completed" : ""}
-            </Badge>
+          {activeId && activeId !== "new" && activeTournament ? (
+            <>
+              <button
+                onClick={() => { setActiveId(null); setTab("standings"); }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: COLORS.textSecondary,
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontFamily: "'DM Sans', sans-serif",
+                  padding: 0,
+                }}
+              >
+                ← All Tournaments
+              </button>
+              <span style={{ color: COLORS.textDim }}>/</span>
+              <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 18, color: COLORS.textPrimary }}>
+                {activeTournament.name}
+              </span>
+              <Badge color={activeTournament.phase === PHASES.DONE ? COLORS.gold : COLORS.accent}>
+                {phaseLabel(activeTournament.phase)}
+              </Badge>
+            </>
+          ) : (
+            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 18, color: COLORS.textPrimary }}>
+              All Tournaments
+            </span>
           )}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -631,24 +762,34 @@ export default function TournamentApp() {
       </header>
 
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 16px" }}>
-        {/* ── No tournament ── */}
-        {!state && view === "admin" && <SetupView onStart={handleStart} />}
-        {!state && view !== "admin" && (
-          <div style={{ textAlign: "center", padding: "80px 0" }}>
-            <div style={{ fontSize: 56, marginBottom: 16 }}>⚽</div>
-            <h2 style={{ fontFamily: "'Playfair Display', serif", color: COLORS.textPrimary, margin: "0 0 8px" }}>No Tournament Yet</h2>
-            <p style={{ color: COLORS.textSecondary }}>Switch to Admin mode to set up a tournament</p>
-          </div>
+        {/* ── List view ── */}
+        {activeId === null && (
+          isAdmin
+            ? <TournamentListView tournaments={tournaments} onSelect={(id) => setActiveId(id)} onCreateNew={() => setActiveId("new")} />
+            : <TournamentListView tournaments={tournaments} onSelect={(id) => setActiveId(id)} onCreateNew={() => { setView("admin"); setActiveId("new"); }} />
+        )}
+
+        {/* ── Setup view ── */}
+        {activeId === "new" && (
+          isAdmin
+            ? <SetupView onStart={handleStart} onCancel={() => setActiveId(null)} />
+            : (
+              <div style={{ textAlign: "center", padding: "80px 0" }}>
+                <div style={{ fontSize: 56, marginBottom: 16 }}>🔧</div>
+                <h2 style={{ fontFamily: "'Playfair Display', serif", color: COLORS.textPrimary, margin: "0 0 8px" }}>Admin Only</h2>
+                <p style={{ color: COLORS.textSecondary }}>Switch to Admin mode to set up a tournament</p>
+              </div>
+            )
         )}
 
         {/* ── Active Tournament ── */}
-        {state && (
+        {activeTournament && (
           <>
-            {state.phase === PHASES.DONE && state.winner && <WinnerBanner name={state.winner} />}
+            {activeTournament.phase === PHASES.DONE && activeTournament.winner && <WinnerBanner name={activeTournament.winner} />}
 
             {/* Tabs */}
             <div style={{ display: "flex", gap: 4, marginBottom: 24, background: COLORS.surface, borderRadius: 10, padding: 4 }}>
-              {["standings", "matches", ...(state.semis || state.final ? ["knockout"] : [])].map((t) => (
+              {["standings", "matches", ...(activeTournament.semis || activeTournament.final ? ["knockout"] : [])].map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
@@ -675,14 +816,14 @@ export default function TournamentApp() {
             {/* Standings */}
             {tab === "standings" && (
               <Card>
-                <StandingsTable teams={state.teams} rounds={state.rounds} />
+                <StandingsTable teams={activeTournament.teams} rounds={activeTournament.rounds} />
               </Card>
             )}
 
             {/* Matches */}
             {tab === "matches" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                {state.rounds.map((r) => (
+                {activeTournament.rounds.map((r) => (
                   <div key={r.round}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                       <h3 style={{ color: COLORS.textPrimary, margin: 0, fontSize: 16, fontFamily: "'Playfair Display', serif" }}>
@@ -692,7 +833,7 @@ export default function TournamentApp() {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {r.matches.map((m) => (
-                        <MatchCard key={m.id} match={m} teams={state.teams} isAdmin={isAdmin} onSave={handleScoreSave} />
+                        <MatchCard key={m.id} match={m} teams={activeTournament.teams} isAdmin={isAdmin} onSave={handleScoreSave} />
                       ))}
                     </div>
                   </div>
@@ -703,12 +844,12 @@ export default function TournamentApp() {
             {/* Knockout */}
             {tab === "knockout" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-                {state.semis && <KnockoutView matches={state.semis} teams={state.teams} isAdmin={isAdmin} onSave={handleSemiSave} label="🏟️ Semifinals" />}
-                {state.thirdPlace && (
-                  <KnockoutView matches={[state.thirdPlace]} teams={state.teams} isAdmin={isAdmin} onSave={handleFinalSave} label="🥉 Third Place" />
+                {activeTournament.semis && <KnockoutView matches={activeTournament.semis} teams={activeTournament.teams} isAdmin={isAdmin} onSave={handleSemiSave} label="🏟️ Semifinals" />}
+                {activeTournament.thirdPlace && (
+                  <KnockoutView matches={[activeTournament.thirdPlace]} teams={activeTournament.teams} isAdmin={isAdmin} onSave={handleFinalSave} label="🥉 Third Place" />
                 )}
-                {state.final && (
-                  <KnockoutView matches={[state.final]} teams={state.teams} isAdmin={isAdmin} onSave={handleFinalSave} label="🏆 Final" />
+                {activeTournament.final && (
+                  <KnockoutView matches={[activeTournament.final]} teams={activeTournament.teams} isAdmin={isAdmin} onSave={handleFinalSave} label="🏆 Final" />
                 )}
               </div>
             )}
@@ -716,20 +857,23 @@ export default function TournamentApp() {
             {/* Admin actions */}
             {isAdmin && (
               <Card style={{ marginTop: 32, display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "center" }} glow>
-                {state.phase === PHASES.GROUP && (
+                {activeTournament.phase === PHASES.GROUP && (
                   <Button onClick={handleGenerateSemis} disabled={!allGroupMatchesPlayed} variant="gold">
                     🏟️ Generate Semifinals
                   </Button>
                 )}
-                {state.phase === PHASES.SEMI && (
+                {activeTournament.phase === PHASES.SEMI && (
                   <Button onClick={handleGenerateFinal} disabled={!allSemiPlayed} variant="gold">
                     🏆 Generate Final
                   </Button>
                 )}
-                <Button variant="danger" onClick={handleReset}>
-                  🗑️ Reset Tournament
+                <Button variant="secondary" onClick={() => setActiveId("new")}>
+                  ＋ New Tournament
                 </Button>
-                {state.phase === PHASES.GROUP && !allGroupMatchesPlayed && (
+                <Button variant="danger" onClick={handleDelete}>
+                  🗑️ Delete Tournament
+                </Button>
+                {activeTournament.phase === PHASES.GROUP && !allGroupMatchesPlayed && (
                   <p style={{ width: "100%", textAlign: "center", color: COLORS.textDim, fontSize: 12, margin: 0 }}>
                     Complete all group matches to unlock semifinals
                   </p>

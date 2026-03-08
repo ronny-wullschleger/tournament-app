@@ -7,7 +7,7 @@
 
 ## Overview
 
-A single-file React app (`tournament.jsx`) for running a round-robin football tournament with knockout rounds. Designed to run embedded in a host environment that provides `window.storage` (async key-value store), with a local Vite dev environment for development and testing.
+A single-file React app (`tournament.jsx`) for running round-robin football tournaments with knockout rounds. Supports multiple tournaments — each persisted individually with full history. Designed to run embedded in a host environment that provides `window.storage` (async key-value store), with a local Vite dev environment for development and testing.
 
 ---
 
@@ -19,7 +19,7 @@ A single-file React app (`tournament.jsx`) for running a round-robin football to
 | Build / Dev server | Vite + `@vitejs/plugin-react` |
 | Styling | Inline styles, dark theme |
 | Fonts | Google Fonts — DM Sans, Playfair Display |
-| Persistence | `window.storage` (async get/set, key: `rr-tournament-v2`) |
+| Persistence | `window.storage` (async get/set, key: `rr-tournaments-v3`) |
 | App entry point | Default export `TournamentApp` from `tournament.jsx` |
 | Dev entry point | `main.jsx` — mounts app, injects `localStorage`-backed `window.storage` mock |
 
@@ -50,27 +50,47 @@ GROUP → SEMI → FINAL → DONE
 | `final` | Semi winners play final; losers play 3rd-place match |
 | `done` | Both final and 3rd-place played; champion crowned |
 
-> There is no `setup` phase constant — the app starts with `state = null` and renders `SetupView` until the tournament is started.
+> There is no `setup` phase constant — `activeId === "new"` triggers `SetupView`.
 
 ---
 
-## State Shape
+## Persisted Envelope Shape
 
 ```js
 {
-  name: string,           // Tournament name
-  teams: [{ id, name }], // 4–12 teams, shuffled on start
-  rounds: [{             // Round-robin rounds
-    round: number,
-    matches: [{ id, round, home, away, homeScore, awayScore, played }]
-  }],
-  phase: 'group'|'semi'|'final'|'done',
-  semis: [match] | null,      // SF1 (1v4), SF2 (2v3)
-  thirdPlace: match | null,   // 3RD
-  final: match | null,        // F1
-  winner: string | null       // Winning team name
+  tournaments: [
+    {
+      id: string,           // uid()
+      createdAt: number,    // Date.now()
+      name: string,
+      teams: [{ id, name }],
+      rounds: [{
+        round: number,
+        matches: [{ id, round, home, away, homeScore, awayScore, played }]
+      }],
+      phase: 'group'|'semi'|'final'|'done',
+      semis: [match] | null,
+      thirdPlace: match | null,
+      final: match | null,
+      winner: string | null
+    }
+  ],
+  activeId: string | null   // null = list view, "new" = setup, id = tournament detail
 }
 ```
+
+---
+
+## Root State
+
+```js
+const [tournaments, setTournaments] = useState([]);
+const [activeId, setActiveId] = useState(null);
+```
+
+`activeTournament` is derived: `tournaments.find(t => t.id === activeId) ?? null`
+
+All handlers use `updateActive(updater)` — a private helper that maps over `tournaments` and applies `updater` only to the active entry.
 
 ---
 
@@ -79,12 +99,12 @@ GROUP → SEMI → FINAL → DONE
 | Helper | Purpose |
 |---|---|
 | `shuffle(arr)` | Fisher-Yates shuffle |
-| `uid()` | Random 6-char ID for team objects |
-| `createMatch(id, home, away)` | Factory for match objects — `{ id, home, away, homeScore: null, awayScore: null, played: false }` |
-| `computeTeamStats(teams, rounds)` | Accumulates P W D L GF GA Pts from played matches; returns sorted array (pts → GD → GF). Used by both `StandingsTable` and `getTopFour` |
-| `generateRoundRobin(teams)` | Circle-method draw; uses `createMatch` internally |
-| `save(state)` | Async write to `window.storage` |
-| `load()` | Async read from `window.storage` |
+| `uid()` | Random 6-char ID |
+| `createMatch(id, home, away)` | Factory for match objects |
+| `computeTeamStats(teams, rounds)` | Accumulates P W D L GF GA Pts; returns sorted array (pts → GD → GF) |
+| `generateRoundRobin(teams)` | Circle-method draw |
+| `save(envelope)` | Async write `{ tournaments, activeId }` to `window.storage` |
+| `migrateIfNeeded()` | On mount: reads v3 key; if absent, reads v2 key and migrates; else returns empty envelope |
 
 ---
 
@@ -93,8 +113,9 @@ GROUP → SEMI → FINAL → DONE
 | Component | Role |
 |---|---|
 | `TournamentApp` | Root — loads/saves state, routes views and tabs |
-| `SetupView` | Team entry form, 4–12 teams, validates unique non-empty names |
-| `StandingsTable` | Live group stage table: P W D L GF GA GD Pts, top 4 highlighted; uses `computeTeamStats` |
+| `TournamentListView` | List of all tournaments sorted newest-first; empty state; "＋ New Tournament" button |
+| `SetupView` | Team entry form, 4–12 teams, validates unique non-empty names; `onCancel` prop shows "← Back to list" |
+| `StandingsTable` | Live group stage table: P W D L GF GA GD Pts, top 4 highlighted |
 | `MatchCard` | Single match row; inline score input in admin mode, click-to-edit if already played |
 | `KnockoutView` | Renders a list of `MatchCard`s under a heading (semis / 3rd place / final) |
 | `WinnerBanner` | Trophy banner shown when phase is `done` |
@@ -112,34 +133,44 @@ GROUP → SEMI → FINAL → DONE
 - Circle method: one team fixed, rest rotate each round
 - BYE matchups are excluded from the match list
 - Produces `n-1` rounds for `n` teams (padded to even)
-- Uses `createMatch` factory for each match object
 
 ### Standings & Top-4 (`computeTeamStats`)
-Single shared helper used by both `StandingsTable` (via `useMemo`) and `getTopFour`.
 Sort priority: Points → Goal Difference → Goals For.
 
 ### Score Handlers
-All three handlers (`handleScoreSave`, `handleSemiSave`, `handleFinalSave`) use targeted immutable spreads — no full deep-clone.
+All handlers (`handleScoreSave`, `handleSemiSave`, `handleFinalSave`) use `updateActive` with targeted immutable spreads.
 
 ---
 
 ## Views & Tabs
 
+### Render Path
+
+```
+loading         → spinner
+activeId === null   → TournamentListView
+activeId === "new"  → SetupView (admin) or "Admin Only" prompt (public)
+activeId === <id>   → tournament detail UI (reads activeTournament)
+```
+
 ### Header (sticky)
-- Tournament name + phase badge
-- **Live** (public, read-only) / **Admin** (score entry) toggle
+
+- **List / setup view:** `⚽  All Tournaments`
+- **Tournament detail:** `⚽  [← All Tournaments]  /  [Name]  [Phase Badge]`
+- Live / Admin toggle always visible
 
 ### Tabs (shown when tournament active)
 - 📊 Standings
 - 📋 Matches (group rounds)
 - 🏆 Knockout (visible once semis generated)
 
-### Admin Actions
+### Admin Actions (tournament detail)
 | Action | Condition |
 |---|---|
 | Generate Semifinals | Phase = `group` AND all group matches played |
 | Generate Final | Phase = `semi` AND both semis played |
-| Reset Tournament | Always available |
+| ＋ New Tournament | Always available |
+| 🗑️ Delete Tournament | Always available; requires `window.confirm` |
 
 ---
 
@@ -153,9 +184,10 @@ All three handlers (`handleScoreSave`, `handleSemiSave`, `handleFinalSave`) use 
 
 ## Persistence
 
-- Auto-saves state to `window.storage` on every state change
+- Storage key: `rr-tournaments-v3`
+- Persists `{ tournaments, activeId }` envelope on every state change
+- On mount: `migrateIfNeeded()` — auto-migrates existing `rr-tournament-v2` data into the first entry of the `tournaments` array
 - Loads on mount; renders a loading spinner while waiting
-- Storage key: `rr-tournament-v2`
 - In dev: `window.storage` is mocked with `localStorage` in `main.jsx`
 
 ---
