@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 
 /* ───────────────────────── helpers ───────────────────────── */
 const STORAGE_KEY = "rr-tournaments-v3";
@@ -380,20 +380,21 @@ const MatchCard = ({ match, teams, isAdmin, onSave }) => {
   const away = teams.find((t) => t.id === match.away);
   const [hs, setHs] = useState(match.homeScore ?? "");
   const [as_, setAs] = useState(match.awayScore ?? "");
-  const [editing, setEditing] = useState(false);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     setHs(match.homeScore ?? "");
     setAs(match.awayScore ?? "");
-    setEditing(false);
   }, [match.homeScore, match.awayScore]);
 
-  const handleSave = () => {
+  const handleBlur = (e) => {
+    // Only save when focus leaves this match card entirely
+    if (containerRef.current?.contains(e.relatedTarget)) return;
     const h = parseInt(hs, 10);
     const a = parseInt(as_, 10);
-    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
-    onSave(match.id, h, a);
-    setEditing(false);
+    if (!isNaN(h) && !isNaN(a) && h >= 0 && a >= 0) {
+      onSave(match.id, h, a);
+    }
   };
 
   const scoreInputStyle = {
@@ -405,6 +406,8 @@ const MatchCard = ({ match, teams, isAdmin, onSave }) => {
 
   return (
     <div
+      ref={containerRef}
+      onBlur={isAdmin ? handleBlur : undefined}
       style={{
         background: match.played ? COLORS.surfaceAlt : COLORS.surface,
         border: `1px solid ${match.played ? COLORS.border : COLORS.accent + "33"}`,
@@ -421,20 +424,15 @@ const MatchCard = ({ match, teams, isAdmin, onSave }) => {
         <span style={{ color: COLORS.textPrimary, fontWeight: 700, fontSize: 14 }}>{home?.name ?? "TBD"}</span>
       </div>
 
-      {isAdmin && (editing || !match.played) ? (
+      {isAdmin ? (
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <input type="number" min="0" value={hs} onChange={(e) => setHs(e.target.value)} style={scoreInputStyle} />
           <span style={{ color: COLORS.textDim, fontWeight: 800 }}>:</span>
           <input type="number" min="0" value={as_} onChange={(e) => setAs(e.target.value)} style={scoreInputStyle} />
-          <Button small onClick={handleSave}>
-            ✓
-          </Button>
         </div>
       ) : (
         <div
-          onClick={() => isAdmin && setEditing(true)}
           style={{
-            cursor: isAdmin ? "pointer" : "default",
             display: "flex",
             alignItems: "center",
             gap: 6,

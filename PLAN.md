@@ -116,7 +116,7 @@ All handlers use `updateActive(updater)` — a private helper that maps over `to
 | `TournamentListView` | List of all tournaments sorted newest-first; empty state; "＋ New Tournament" button |
 | `SetupView` | Team entry form, 4–12 teams, validates unique non-empty names; `onCancel` prop shows "← Back to list" |
 | `StandingsTable` | Live group stage table: P W D L GF GA GD Pts, top 4 highlighted |
-| `MatchCard` | Single match row; inline score input in admin mode, click-to-edit if already played |
+| `MatchCard` | Single match row; always shows score inputs in admin mode; auto-saves when focus leaves the card and both scores are valid integers ≥ 0 |
 | `KnockoutView` | Renders a list of `MatchCard`s under a heading (semis / 3rd place / final) |
 | `WinnerBanner` | Trophy banner shown when phase is `done` |
 | `Badge` | Pill label |

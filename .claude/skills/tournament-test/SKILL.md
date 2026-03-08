@@ -35,10 +35,13 @@ Then click **Generate Draw & Start →**.
 
 ## Step 5 — Enter results for all group matches
 
-There will be 3 rounds with 2 matches each (6 matches total). For every match:
-1. Fill the left spinbutton (home score) and right spinbutton (away score) with random plausible scores (0–4).
-2. Click the `✓` confirm button for that match.
-3. Wait for the score display to update before moving to the next match.
+There will be 3 rounds with 2 matches each (6 matches total). Scores are saved automatically when focus leaves a match card — there is **no confirm button**.
+
+For each match:
+1. Fill the left spinbutton (home score).
+2. Fill the right spinbutton (away score).
+3. Move focus away from the match (e.g. by clicking the next match's home spinbutton, or pressing Tab). This triggers the auto-save.
+4. After the last match (R3 M2), click the **📊 Standings** tab to trigger the blur and confirm the final save.
 
 Suggested scores (feel free to vary):
 | Match | Home | Away |
@@ -52,7 +55,7 @@ Suggested scores (feel free to vary):
 
 ## Step 6 — Verify completion
 
-After the last result is confirmed:
+After all results are entered:
 - All 3 rounds should show a **Complete** badge.
 - The **🏟️ Generate Semifinals** button must be enabled (not disabled).
 
