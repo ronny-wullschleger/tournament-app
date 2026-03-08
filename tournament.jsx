@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 /* ───────────────────────── helpers ───────────────────────── */
 const STORAGE_KEY = "rr-tournament-v2";
@@ -10,6 +10,31 @@ const shuffle = (arr) => {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+};
+
+const uid = () => Math.random().toString(36).slice(2, 8);
+
+const createMatch = (id, home, away) => ({ id, home, away, homeScore: null, awayScore: null, played: false });
+
+const computeTeamStats = (teams, rounds) => {
+  const s = {};
+  teams.forEach((t) => {
+    s[t.id] = { id: t.id, name: t.name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
+  });
+  rounds.forEach((r) =>
+    r.matches.forEach((m) => {
+      if (!m.played) return;
+      const h = s[m.home], a = s[m.away];
+      if (!h || !a) return;
+      h.p++; a.p++;
+      h.gf += m.homeScore; h.ga += m.awayScore;
+      a.gf += m.awayScore; a.ga += m.homeScore;
+      if (m.homeScore > m.awayScore) { h.w++; a.l++; h.pts += 3; }
+      else if (m.homeScore < m.awayScore) { a.w++; h.l++; a.pts += 3; }
+      else { h.d++; a.d++; h.pts++; a.pts++; }
+    })
+  );
+  return Object.values(s).sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf);
 };
 
 const generateRoundRobin = (teams) => {
@@ -27,15 +52,7 @@ const generateRoundRobin = (teams) => {
       const home = current[i];
       const away = current[n - 1 - i];
       if (home.id !== "BYE" && away.id !== "BYE") {
-        matches.push({
-          id: `R${r + 1}-M${i + 1}`,
-          round: r + 1,
-          home: home.id,
-          away: away.id,
-          homeScore: null,
-          awayScore: null,
-          played: false,
-        });
+        matches.push({ ...createMatch(`R${r + 1}-M${i + 1}`, home.id, away.id), round: r + 1 });
       }
     }
     rounds.push({ round: r + 1, matches });
@@ -43,8 +60,6 @@ const generateRoundRobin = (teams) => {
   }
   return rounds;
 };
-
-const uid = () => Math.random().toString(36).slice(2, 8);
 
 /* ───────────────────────── storage ───────────────────────── */
 const save = async (state) => {
@@ -65,7 +80,7 @@ const load = async () => {
 };
 
 /* ───────────────────────── constants ───────────────────────── */
-const PHASES = { SETUP: "setup", GROUP: "group", SEMI: "semi", FINAL: "final", DONE: "done" };
+const PHASES = { GROUP: "group", SEMI: "semi", FINAL: "final", DONE: "done" };
 
 const COLORS = {
   bg: "#0a0e17",
@@ -73,7 +88,6 @@ const COLORS = {
   surfaceAlt: "#1a2235",
   border: "#1e293b",
   accent: "#22d3ee",
-  accentDim: "#0e7490",
   gold: "#f59e0b",
   green: "#10b981",
   red: "#ef4444",
@@ -265,41 +279,7 @@ const SetupView = ({ onStart }) => {
 
 /* ──── Standings Table ──── */
 const StandingsTable = ({ teams, rounds }) => {
-  const stats = useMemo(() => {
-    const s = {};
-    teams.forEach((t) => {
-      s[t.id] = { id: t.id, name: t.name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
-    });
-    rounds.forEach((r) =>
-      r.matches.forEach((m) => {
-        if (!m.played) return;
-        const h = s[m.home],
-          a = s[m.away];
-        if (!h || !a) return;
-        h.p++;
-        a.p++;
-        h.gf += m.homeScore;
-        h.ga += m.awayScore;
-        a.gf += m.awayScore;
-        a.ga += m.homeScore;
-        if (m.homeScore > m.awayScore) {
-          h.w++;
-          a.l++;
-          h.pts += 3;
-        } else if (m.homeScore < m.awayScore) {
-          a.w++;
-          h.l++;
-          a.pts += 3;
-        } else {
-          h.d++;
-          a.d++;
-          h.pts++;
-          a.pts++;
-        }
-      })
-    );
-    return Object.values(s).sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf);
-  }, [teams, rounds]);
+  const stats = useMemo(() => computeTeamStats(teams, rounds), [teams, rounds]);
 
   const cols = ["#", "Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"];
   const cellStyle = { padding: "10px 8px", textAlign: "center", fontSize: 13 };
@@ -374,6 +354,7 @@ const MatchCard = ({ match, teams, isAdmin, onSave }) => {
   useEffect(() => {
     setHs(match.homeScore ?? "");
     setAs(match.awayScore ?? "");
+    setEditing(false);
   }, [match.homeScore, match.awayScore]);
 
   const handleSave = () => {
@@ -382,6 +363,13 @@ const MatchCard = ({ match, teams, isAdmin, onSave }) => {
     if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
     onSave(match.id, h, a);
     setEditing(false);
+  };
+
+  const scoreInputStyle = {
+    width: 44, textAlign: "center", background: COLORS.bg,
+    border: `1px solid ${COLORS.border}`, borderRadius: 6,
+    color: COLORS.textPrimary, fontSize: 18, fontWeight: 800,
+    padding: "6px 0", fontFamily: "'DM Sans', sans-serif",
   };
 
   return (
@@ -404,43 +392,9 @@ const MatchCard = ({ match, teams, isAdmin, onSave }) => {
 
       {isAdmin && (editing || !match.played) ? (
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <input
-            type="number"
-            min="0"
-            value={hs}
-            onChange={(e) => setHs(e.target.value)}
-            style={{
-              width: 44,
-              textAlign: "center",
-              background: COLORS.bg,
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 6,
-              color: COLORS.textPrimary,
-              fontSize: 18,
-              fontWeight: 800,
-              padding: "6px 0",
-              fontFamily: "'DM Sans', sans-serif",
-            }}
-          />
+          <input type="number" min="0" value={hs} onChange={(e) => setHs(e.target.value)} style={scoreInputStyle} />
           <span style={{ color: COLORS.textDim, fontWeight: 800 }}>:</span>
-          <input
-            type="number"
-            min="0"
-            value={as_}
-            onChange={(e) => setAs(e.target.value)}
-            style={{
-              width: 44,
-              textAlign: "center",
-              background: COLORS.bg,
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 6,
-              color: COLORS.textPrimary,
-              fontSize: 18,
-              fontWeight: 800,
-              padding: "6px 0",
-              fontFamily: "'DM Sans', sans-serif",
-            }}
-          />
+          <input type="number" min="0" value={as_} onChange={(e) => setAs(e.target.value)} style={scoreInputStyle} />
           <Button small onClick={handleSave}>
             ✓
           </Button>
@@ -535,26 +489,10 @@ export default function TournamentApp() {
     if (state) save(state);
   }, [state]);
 
-  const getTopFour = useCallback(() => {
+  const getTopFour = () => {
     if (!state) return [];
-    const s = {};
-    state.teams.forEach((t) => {
-      s[t.id] = { id: t.id, name: t.name, pts: 0, gd: 0, gf: 0 };
-    });
-    state.rounds.forEach((r) =>
-      r.matches.forEach((m) => {
-        if (!m.played) return;
-        const h = s[m.home], a = s[m.away];
-        if (!h || !a) return;
-        h.gf += m.homeScore; h.gd += m.homeScore - m.awayScore;
-        a.gf += m.awayScore; a.gd += m.awayScore - m.homeScore;
-        if (m.homeScore > m.awayScore) h.pts += 3;
-        else if (m.homeScore < m.awayScore) a.pts += 3;
-        else { h.pts++; a.pts++; }
-      })
-    );
-    return Object.values(s).sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf).slice(0, 4);
-  }, [state]);
+    return computeTeamStats(state.teams, state.rounds).slice(0, 4);
+  };
 
   const allGroupMatchesPlayed = useMemo(() => {
     if (!state || !state.rounds) return false;
@@ -574,39 +512,35 @@ export default function TournamentApp() {
   };
 
   const handleScoreSave = (matchId, hs, as_) => {
-    setState((prev) => {
-      const next = JSON.parse(JSON.stringify(prev));
-      for (const r of next.rounds) {
-        const m = r.matches.find((x) => x.id === matchId);
-        if (m) {
-          m.homeScore = hs;
-          m.awayScore = as_;
-          m.played = true;
-          break;
-        }
-      }
-      return next;
-    });
+    setState((prev) => ({
+      ...prev,
+      rounds: prev.rounds.map((r) => ({
+        ...r,
+        matches: r.matches.map((m) =>
+          m.id === matchId ? { ...m, homeScore: hs, awayScore: as_, played: true } : m
+        ),
+      })),
+    }));
   };
 
   const handleGenerateSemis = () => {
     const top4 = getTopFour();
     // 1 vs 4, 2 vs 3
     const semis = [
-      { id: "SF1", home: top4[0].id, away: top4[3].id, homeScore: null, awayScore: null, played: false },
-      { id: "SF2", home: top4[1].id, away: top4[2].id, homeScore: null, awayScore: null, played: false },
+      createMatch("SF1", top4[0].id, top4[3].id),
+      createMatch("SF2", top4[1].id, top4[2].id),
     ];
     setState((prev) => ({ ...prev, phase: PHASES.SEMI, semis }));
     setTab("knockout");
   };
 
   const handleSemiSave = (matchId, hs, as_) => {
-    setState((prev) => {
-      const next = JSON.parse(JSON.stringify(prev));
-      const m = next.semis.find((x) => x.id === matchId);
-      if (m) { m.homeScore = hs; m.awayScore = as_; m.played = true; }
-      return next;
-    });
+    setState((prev) => ({
+      ...prev,
+      semis: prev.semis.map((m) =>
+        m.id === matchId ? { ...m, homeScore: hs, awayScore: as_, played: true } : m
+      ),
+    }));
   };
 
   const handleGenerateFinal = () => {
@@ -614,36 +548,23 @@ export default function TournamentApp() {
     const w2 = state.semis[1].homeScore > state.semis[1].awayScore ? state.semis[1].home : state.semis[1].away;
     const l1 = state.semis[0].homeScore > state.semis[0].awayScore ? state.semis[0].away : state.semis[0].home;
     const l2 = state.semis[1].homeScore > state.semis[1].awayScore ? state.semis[1].away : state.semis[1].home;
-    const finalMatch = { id: "F1", home: w1, away: w2, homeScore: null, awayScore: null, played: false };
-    const thirdPlace = { id: "3RD", home: l1, away: l2, homeScore: null, awayScore: null, played: false };
+    const finalMatch = createMatch("F1", w1, w2);
+    const thirdPlace = createMatch("3RD", l1, l2);
     setState((prev) => ({ ...prev, phase: PHASES.FINAL, final: finalMatch, thirdPlace }));
   };
 
   const handleFinalSave = (matchId, hs, as_) => {
     setState((prev) => {
-      const next = JSON.parse(JSON.stringify(prev));
-      if (matchId === "F1") {
-        next.final.homeScore = hs;
-        next.final.awayScore = as_;
-        next.final.played = true;
-        const winnerId = hs > as_ ? next.final.home : next.final.away;
-        const winnerTeam = next.teams.find((t) => t.id === winnerId);
-        if (next.thirdPlace?.played) {
-          next.phase = PHASES.DONE;
-          next.winner = winnerTeam?.name;
-        }
-      } else if (matchId === "3RD") {
-        next.thirdPlace.homeScore = hs;
-        next.thirdPlace.awayScore = as_;
-        next.thirdPlace.played = true;
-        if (next.final?.played) {
-          const winnerId = next.final.homeScore > next.final.awayScore ? next.final.home : next.final.away;
-          const winnerTeam = next.teams.find((t) => t.id === winnerId);
-          next.phase = PHASES.DONE;
-          next.winner = winnerTeam?.name;
-        }
-      }
-      return next;
+      const final = matchId === "F1"
+        ? { ...prev.final, homeScore: hs, awayScore: as_, played: true }
+        : prev.final;
+      const thirdPlace = matchId === "3RD"
+        ? { ...prev.thirdPlace, homeScore: hs, awayScore: as_, played: true }
+        : prev.thirdPlace;
+      const bothPlayed = final?.played && thirdPlace?.played;
+      const winnerId = bothPlayed ? (final.homeScore > final.awayScore ? final.home : final.away) : null;
+      const winner = winnerId ? prev.teams.find((t) => t.id === winnerId)?.name ?? null : null;
+      return { ...prev, final, thirdPlace, ...(bothPlayed ? { phase: PHASES.DONE, winner } : {}) };
     });
   };
 
