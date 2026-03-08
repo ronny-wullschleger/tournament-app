@@ -7,7 +7,7 @@ export const StandingsTable = ({ teams, rounds }) => {
   const cols = ["#", "Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"];
 
   return (
-    <div className="overflow-x-auto">
+    <div>
       <table className="w-full border-collapse">
         <thead>
           <tr>
@@ -39,7 +39,18 @@ export const StandingsTable = ({ teams, rounds }) => {
                 {i + 1}
               </td>
               <td className="py-2.5 px-2 text-left text-xs text-textPrimary font-semibold">
-                {t.name} {i < 4 && <span className="text-accent text-[10px]">●</span>}
+                {t.tiebreakNote ? (
+                  <span className="group relative cursor-help inline-block">
+                    {t.name}
+                    {i < 4 && <span className="text-accent text-[10px] ml-0.5">●</span>}
+                    <span className="text-textDim text-[9px] ml-0.5 align-super select-none">ⓘ</span>
+                    <span className="pointer-events-none absolute left-0 top-full mt-1 z-50 w-64 rounded-lg bg-surface border border-border px-3 py-2 text-[11px] text-textSecondary leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity shadow-lg whitespace-normal font-normal">
+                      {t.tiebreakNote}
+                    </span>
+                  </span>
+                ) : (
+                  <>{t.name}{i < 4 && <span className="text-accent text-[10px] ml-0.5">●</span>}</>
+                )}
               </td>
               <td className="py-2.5 px-2 text-center text-xs text-textSecondary">{t.p}</td>
               <td className="py-2.5 px-2 text-center text-xs text-green">{t.w}</td>

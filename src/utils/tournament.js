@@ -61,8 +61,6 @@ export const computeTeamStats = (teams, rounds) => {
   );
 
   const stats = Object.values(s);
-  // Assign coin-flip value once per sort so it's stable within this call
-  stats.forEach(t => { t._coin = Math.random(); });
 
   const h2hStats = (ids) => {
     const idSet = new Set(ids);
@@ -96,8 +94,30 @@ export const computeTeamStats = (teams, rounds) => {
         (h[b.id].gf - h[a.id].gf) ||
         ((b.gf - b.ga) - (a.gf - a.ga)) ||
         (b.gf - a.gf) ||
-        (a._coin - b._coin)
+        (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
       );
+
+      // Determine which criterion was the first to separate the group
+      const criteria = [
+        { label: 'head-to-head points',         fn: t => h[t.id].pts, fmt: v => `${v} pts` },
+        { label: 'head-to-head goal difference', fn: t => h[t.id].gd, fmt: v => (v > 0 ? `+${v}` : `${v}`) },
+        { label: 'head-to-head goals scored',    fn: t => h[t.id].gf, fmt: v => `${v} goals` },
+        { label: 'overall goal difference',      fn: t => t.gf - t.ga, fmt: v => (v > 0 ? `+${v}` : `${v}`) },
+        { label: 'overall goals scored',         fn: t => t.gf, fmt: v => `${v} goals` },
+      ];
+      let decidingLabel = null;
+      let getVal = null;
+      for (const { fn, label, fmt } of criteria) {
+        const vals = group.map(fn);
+        if (new Set(vals).size > 1) { decidingLabel = label; getVal = t => fmt(fn(t)); break; }
+      }
+
+      group.forEach(t => {
+        const others = group.filter(g => g.id !== t.id).map(g => g.name).join(', ');
+        t.tiebreakNote = decidingLabel
+          ? `Tied on ${t.pts} pts with ${others}. Ranked by ${decidingLabel}: ${getVal(t)}.`
+          : `Tied on ${t.pts} pts with ${others}. Ranked by drawing of lots.`;
+      });
     }
     result.push(...group);
     i = j;

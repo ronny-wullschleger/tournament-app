@@ -160,7 +160,7 @@ All components are in `src/components/` except for the root `App.jsx`.
 | `TournamentApp` | Root — uses `useTournament` hook, routes views and tabs | `src/App.jsx` |
 | `TournamentListView` | List of all tournaments sorted newest-first; empty state; "＋ New Tournament" button | `TournamentListView.jsx` |
 | `SetupView` | Team entry form, 4–12 teams, validates unique non-empty names; `onCancel` prop shows "← Back to list" | `SetupView.jsx` |
-| `StandingsTable` | Live group stage table: P W D L GF GA GD Pts, top 4 highlighted | `StandingsTable.jsx` |
+| `StandingsTable` | Live group stage table: P W D L GF GA GD Pts, top 4 highlighted; shows ⓘ hover tooltip with tiebreak explanation when teams are separated by H2H or other tiebreaker | `StandingsTable.jsx` |
 | `MatchCard` | Single match row; always shows score inputs in admin mode; auto-saves when focus leaves the card and both scores are valid integers ≥ 0 | `MatchCard.jsx` |
 | `KnockoutView` | Renders a list of `MatchCard`s under a heading (semis / 3rd place / final) | `KnockoutView.jsx` |
 | `WinnerBanner` | Trophy banner shown when phase is `done` | `WinnerBanner.jsx` |
@@ -196,7 +196,9 @@ Teams are first sorted by points. Within a group of teams tied on points, the fo
 3. Head-to-head goals scored
 4. Overall goal difference
 5. Overall goals scored
-6. Coin flip (random, stable within a single sort call)
+6. Drawing of lots (deterministic: lexicographic team ID comparison — stable across all views)
+
+When a team is placed via tiebreaker, a `tiebreakNote` string is attached to its stat object and shown as a hover tooltip (ⓘ) in the standings table, explaining which criterion decided the position and the team's value for that criterion.
 
 ### Score Handlers
 All handlers (`handleScoreSave`, `handleSemiSave`, `handleFinalSave`) use `updateActive` with targeted immutable spreads.
