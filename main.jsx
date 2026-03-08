@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import TournamentApp from "./tournament.jsx";
+import TournamentApp from "./src/App.jsx";
+import "./src/styles/index.css";
 
 // Mock window.storage using localStorage (mirrors the host environment API)
 window.storage = {

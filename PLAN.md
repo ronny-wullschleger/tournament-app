@@ -1,13 +1,13 @@
 # Tournament App — Plan
 
-> **Keep this file in sync with `tournament.jsx` at all times.**
+> **Keep this file in sync with the codebase at all times.**
 > Every code change that affects features, architecture, or data must be reflected here.
 
 ---
 
 ## Overview
 
-A single-file React app (`tournament.jsx`) for running round-robin football tournaments with knockout rounds. Supports multiple tournaments — each persisted individually with full history. Designed to run embedded in a host environment that provides `window.storage` (async key-value store), with a local Vite dev environment for development and testing.
+A modular React app for running round-robin football tournaments with knockout rounds. Supports multiple tournaments — each persisted individually with full history. Designed to run embedded in a host environment that provides `window.storage` (async key-value store), with a local Vite dev environment for development and testing.
 
 ---
 
@@ -15,12 +15,12 @@ A single-file React app (`tournament.jsx`) for running round-robin football tour
 
 | Concern | Choice |
 |---|---|
-| Framework | React (hooks only, no external state lib) |
-| Build / Dev server | Vite + `@vitejs/plugin-react` |
-| Styling | Inline styles, dark theme |
+| Framework | React 19 (hooks only, no external state lib) |
+| Build / Dev server | Vite 7.3.1 + `@vitejs/plugin-react` 5.1.4 |
+| Styling | Tailwind CSS 3.4.19 with custom theme, dark mode |
 | Fonts | Google Fonts — DM Sans, Playfair Display |
 | Persistence | `window.storage` (async get/set, key: `rr-tournaments-v3`) |
-| App entry point | Default export `TournamentApp` from `tournament.jsx` |
+| App entry point | Default export `TournamentApp` from `src/App.jsx` |
 | Dev entry point | `main.jsx` — mounts app, injects `localStorage`-backed `window.storage` mock |
 
 ---
@@ -94,7 +94,45 @@ All handlers use `updateActive(updater)` — a private helper that maps over `to
 
 ---
 
+## Project Structure
+
+```
+tournament-app/
+├── src/
+│   ├── components/        # React components
+│   │   ├── Badge.jsx
+│   │   ├── Button.jsx
+│   │   ├── Card.jsx
+│   │   ├── Input.jsx
+│   │   ├── MatchCard.jsx
+│   │   ├── KnockoutView.jsx
+│   │   ├── SetupView.jsx
+│   │   ├── StandingsTable.jsx
+│   │   ├── TournamentListView.jsx
+│   │   └── WinnerBanner.jsx
+│   ├── hooks/             # Custom React hooks
+│   │   └── useTournament.js    # Main tournament state management
+│   ├── utils/             # Utility functions
+│   │   ├── constants.js        # Phase constants and helpers
+│   │   ├── storage.js          # Storage operations & migration
+│   │   └── tournament.js       # Tournament logic (draw, stats, etc.)
+│   ├── styles/            # CSS files
+│   │   └── index.css           # Tailwind directives & fonts
+│   └── App.jsx            # Main app component
+├── main.jsx               # Dev entry point with storage mock
+├── index.html             # HTML shell
+├── vite.config.js         # Vite configuration
+├── tailwind.config.js     # Tailwind CSS configuration
+├── postcss.config.js      # PostCSS configuration
+├── package.json           # Dependencies
+└── PLAN.md                # This file
+```
+
+---
+
 ## Module-Level Helpers
+
+Located in `src/utils/tournament.js`:
 
 | Helper | Purpose |
 |---|---|
@@ -103,6 +141,11 @@ All handlers use `updateActive(updater)` — a private helper that maps over `to
 | `createMatch(id, home, away)` | Factory for match objects |
 | `computeTeamStats(teams, rounds)` | Accumulates P W D L GF GA Pts; returns sorted array (pts → GD → GF) |
 | `generateRoundRobin(teams)` | Circle-method draw |
+
+Located in `src/utils/storage.js`:
+
+| Helper | Purpose |
+|---|---|
 | `save(envelope)` | Async write `{ tournaments, activeId }` to `window.storage` |
 | `migrateIfNeeded()` | On mount: reads v3 key; if absent, reads v2 key and migrates; else returns empty envelope |
 
@@ -110,19 +153,31 @@ All handlers use `updateActive(updater)` — a private helper that maps over `to
 
 ## Components
 
-| Component | Role |
+All components are in `src/components/` except for the root `App.jsx`.
+
+| Component | Role | File |
+|---|---|---|
+| `TournamentApp` | Root — uses `useTournament` hook, routes views and tabs | `src/App.jsx` |
+| `TournamentListView` | List of all tournaments sorted newest-first; empty state; "＋ New Tournament" button | `TournamentListView.jsx` |
+| `SetupView` | Team entry form, 4–12 teams, validates unique non-empty names; `onCancel` prop shows "← Back to list" | `SetupView.jsx` |
+| `StandingsTable` | Live group stage table: P W D L GF GA GD Pts, top 4 highlighted | `StandingsTable.jsx` |
+| `MatchCard` | Single match row; always shows score inputs in admin mode; auto-saves when focus leaves the card and both scores are valid integers ≥ 0 | `MatchCard.jsx` |
+| `KnockoutView` | Renders a list of `MatchCard`s under a heading (semis / 3rd place / final) | `KnockoutView.jsx` |
+| `WinnerBanner` | Trophy banner shown when phase is `done` | `WinnerBanner.jsx` |
+| `Badge` | Pill label (Tailwind-styled) | `Badge.jsx` |
+| `Button` | Styled button, variants: `primary` / `secondary` / `danger` / `gold` | `Button.jsx` |
+| `Card` | Surface container with optional glow border | `Card.jsx` |
+| `Input` | Styled text input | `Input.jsx` |
+
+---
+
+## Custom Hooks
+
+Located in `src/hooks/`:
+
+| Hook | Purpose |
 |---|---|
-| `TournamentApp` | Root — loads/saves state, routes views and tabs |
-| `TournamentListView` | List of all tournaments sorted newest-first; empty state; "＋ New Tournament" button |
-| `SetupView` | Team entry form, 4–12 teams, validates unique non-empty names; `onCancel` prop shows "← Back to list" |
-| `StandingsTable` | Live group stage table: P W D L GF GA GD Pts, top 4 highlighted |
-| `MatchCard` | Single match row; always shows score inputs in admin mode; auto-saves when focus leaves the card and both scores are valid integers ≥ 0 |
-| `KnockoutView` | Renders a list of `MatchCard`s under a heading (semis / 3rd place / final) |
-| `WinnerBanner` | Trophy banner shown when phase is `done` |
-| `Badge` | Pill label |
-| `Button` | Styled button, variants: `primary` / `secondary` / `danger` / `gold` |
-| `Card` | Surface container with optional glow border |
-| `Input` | Styled text input |
+| `useTournament` | Manages all tournament state (tournaments, activeId, view, tab), handles persistence, live updates, and provides all action handlers |
 
 ---
 

@@ -4,7 +4,7 @@
 Every commit must be immediately pushed to `origin main` without asking for confirmation.
 
 ## Testing after every change (mandatory)
-After every code change to `tournament.jsx`, test the application using the Playwright MCP:
+After every code change, test the application using the Playwright MCP:
 1. Ensure the Vite dev server is running (`npm run dev` at `http://localhost:5173`)
 2. Use Playwright MCP browser tools to open the app and verify the changed behaviour works correctly
 3. Only commit once the test passes
@@ -64,13 +64,19 @@ Files allowed to contain configuration:
 3. Commit both files together with the code change
 
 ## Project structure
-| File | Purpose |
+| File/Directory | Purpose |
 |---|---|
-| `tournament.jsx` | Entire app — do not split unless explicitly asked |
+| `src/App.jsx` | Main app component using `useTournament` hook |
+| `src/components/` | All React components (Badge, Button, Card, Input, MatchCard, etc.) |
+| `src/hooks/` | Custom React hooks (`useTournament.js` for state management) |
+| `src/utils/` | Utility functions (tournament logic, storage, constants) |
+| `src/styles/` | CSS files (Tailwind directives and fonts) |
 | `main.jsx` | Dev entry point; mounts app and provides `window.storage` mock via `localStorage` |
 | `index.html` | Minimal HTML shell for Vite |
 | `vite.config.js` | Vite + React plugin config |
-| `package.json` | Dependencies: React 19, Vite, `@vitejs/plugin-react` |
+| `tailwind.config.js` | Tailwind CSS configuration with custom theme |
+| `postcss.config.js` | PostCSS configuration |
+| `package.json` | Dependencies: React 19, Vite 7.3, Tailwind CSS 3.4, `@vitejs/plugin-react` |
 | `PLAN.md` | Living spec — must stay in sync with code |
 | `.mcp.json` | MCP server config (Playwright); committed to repo |
 | `.claude/skills/tournament-test/SKILL.md` | Local skill: smoke-test via `/tournament-test` |
