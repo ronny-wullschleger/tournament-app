@@ -21,7 +21,11 @@ If the result is not `200`, inform the user to start the server with `npm run de
 - Click **← All Tournaments** if a tournament is already open.
 - Click **🔧 Admin** to enable admin mode.
 - Click **＋ New Tournament**.
-- Click **+ Add Team** 8 times to reach 12 team inputs.
+- Use `browser_run_code` to click **+ Add Team** 8 times instantly:
+  ```js
+  const btn = page.getByRole('button', { name: '+ Add Team' });
+  for (let i = 0; i < 8; i++) await btn.click();
+  ```
 - Fill all 12 team name textboxes in one `browser_fill_form` call:
   1. Ajax, 2. Barcelona, 3. Chelsea, 4. Dortmund, 5. Everton, 6. Feyenoord,
   7. Galatasaray, 8. Hamburg, 9. Inter, 10. Juventus, 11. Köln, 12. Liverpool
