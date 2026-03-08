@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { save, migrateIfNeeded, updateChannel, STORAGE_KEY, POLL_INTERVAL } from "../utils/storage";
 import { generateRoundRobin, createMatch, computeTeamStats, uid } from "../utils/tournament";
 import { PHASES } from "../utils/constants";
@@ -10,17 +10,50 @@ export const useTournament = () => {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("standings"); // "standings" | "matches" | "knockout"
 
-  // Load (with migration)
+  // Keep a ref to tournaments for use in event handlers
+  const tournamentsRef = useRef(tournaments);
+  useEffect(() => { tournamentsRef.current = tournaments; }, [tournaments]);
+
+  // Load (with migration) — honour URL hash as initial activeId
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const data = await migrateIfNeeded();
       if (cancelled) return;
       setTournaments(data.tournaments);
-      setActiveId(data.activeId);
+      const hashId = window.location.hash.slice(1) || null;
+      if (hashId && data.tournaments.some((t) => t.id === hashId)) {
+        setActiveId(hashId);
+      } else {
+        setActiveId(data.activeId);
+      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
+  }, []);
+
+  // Sync activeId → URL hash
+  useEffect(() => {
+    if (loading) return;
+    const desired = (activeId && activeId !== "new") ? `#${activeId}` : "";
+    if (window.location.hash !== desired) {
+      window.history.pushState(null, "", desired || window.location.pathname);
+    }
+  }, [activeId, loading]);
+
+  // Sync URL hash → activeId (browser back / forward)
+  useEffect(() => {
+    const onHashChange = () => {
+      const id = window.location.hash.slice(1) || null;
+      if (id && tournamentsRef.current.some((t) => t.id === id)) {
+        setActiveId(id);
+        setTab("standings");
+      } else {
+        setActiveId(null);
+      }
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
   // Save on change

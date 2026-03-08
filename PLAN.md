@@ -268,6 +268,22 @@ Viewers see score and standings changes in real time without refreshing:
 
 ---
 
+## URL Routing
+
+Hash-based deep-linking — no server config required, works in the embedded host environment.
+
+| URL | State |
+|---|---|
+| `/` | List view (`activeId = null`) |
+| `/#<tournamentId>` | Tournament detail (`activeId = <id>`) |
+
+### Behaviour
+- **On load**: if a valid tournament ID is in `window.location.hash`, it is used as the initial `activeId`; otherwise the persisted `activeId` from storage is used.
+- **Navigation**: every `activeId` change pushes a new `history` entry via `pushState` (except for the `"new"` transient state, which leaves the URL unchanged).
+- **Back / forward**: `hashchange` events sync `window.location.hash` → `activeId`; if the hash ID is not found in the current tournament list, falls back to `null` (list view).
+
+---
+
 ## Planned / Future Features
 
 - [ ] Penalty shootout support for drawn knockout matches
