@@ -190,6 +190,19 @@ activeId === <id>   → tournament detail UI (reads activeTournament)
 - Loads on mount; renders a loading spinner while waiting
 - In dev: `window.storage` is mocked with `localStorage` in `main.jsx`
 
+## Live Updates (no reload required)
+
+Viewers see score and standings changes in real time without refreshing:
+
+| Mechanism | Scope | Latency |
+|---|---|---|
+| `BroadcastChannel("rr-tournaments-v3")` | Same browser, other tabs | Instant |
+| `setInterval` poll every 5 s | Any device sharing the same `window.storage` backend | ≤ 5 s |
+
+- Only `tournaments` is synced from external updates — each viewer keeps their own `activeId` (navigation state).
+- A `JSON.stringify` equality check prevents unnecessary re-renders when nothing has changed.
+- The channel is created at module level; `save()` calls `postMessage("update")` after every write.
+
 ---
 
 ## Planned / Future Features

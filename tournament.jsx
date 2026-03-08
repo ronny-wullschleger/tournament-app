@@ -62,9 +62,15 @@ const generateRoundRobin = (teams) => {
 };
 
 /* ───────────────────────── storage ───────────────────────── */
+const POLL_INTERVAL = 5000;
+const updateChannel = typeof BroadcastChannel !== "undefined"
+  ? new BroadcastChannel("rr-tournaments-v3")
+  : null;
+
 const save = async (envelope) => {
   try {
     await window.storage.set(STORAGE_KEY, JSON.stringify(envelope));
+    updateChannel?.postMessage("update");
   } catch (e) {
     console.error("Save failed", e);
   }
@@ -578,6 +584,27 @@ export default function TournamentApp() {
   useEffect(() => {
     if (!loading) save({ tournaments, activeId });
   }, [tournaments, activeId, loading]);
+
+  // Live updates: BroadcastChannel (same browser) + polling (cross-device)
+  useEffect(() => {
+    if (loading) return;
+    const reload = async () => {
+      try {
+        const raw = await window.storage.get(STORAGE_KEY);
+        if (!raw) return;
+        const incoming = JSON.parse(raw.value).tournaments;
+        setTournaments((prev) =>
+          JSON.stringify(prev) === JSON.stringify(incoming) ? prev : incoming
+        );
+      } catch { /* ignore transient errors */ }
+    };
+    updateChannel?.addEventListener("message", reload);
+    const timer = setInterval(reload, POLL_INTERVAL);
+    return () => {
+      updateChannel?.removeEventListener("message", reload);
+      clearInterval(timer);
+    };
+  }, [loading]);
 
   // Derived active tournament
   const activeTournament = tournaments.find((t) => t.id === activeId) ?? null;
