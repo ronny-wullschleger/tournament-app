@@ -60,6 +60,10 @@ Group stage  →  Semifinals  →  Final + 3rd place  →  Done
 
 ## Live Updates — How It Works
 
+![Live Update Architecture](docs/architecture.png)
+
+> Source: [`docs/architecture.excalidraw`](docs/architecture.excalidraw) — open in [excalidraw.com](https://excalidraw.com) to edit.
+
 When an admin saves a score, the app writes to `window.storage` and simultaneously broadcasts a notification. Viewers receive updates through two channels:
 
 **Same browser (other tabs) — instant**
