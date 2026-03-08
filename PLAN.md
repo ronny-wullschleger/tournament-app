@@ -1,13 +1,13 @@
 # Tournament App — Plan
 
-> **Keep this file in sync with `tournament.jsx` at all times.**
+> **Keep this file in sync with the codebase at all times.**
 > Every code change that affects features, architecture, or data must be reflected here.
 
 ---
 
 ## Overview
 
-A single-file React app (`tournament.jsx`) for running round-robin football tournaments with knockout rounds. Supports multiple tournaments — each persisted individually with full history. Designed to run embedded in a host environment that provides `window.storage` (async key-value store), with a local Vite dev environment for development and testing.
+A modular React app for running round-robin football tournaments with knockout rounds. Supports multiple tournaments — each persisted individually with full history. Designed to run embedded in a host environment that provides `window.storage` (async key-value store), with a local Vite dev environment for development and testing.
 
 ---
 
@@ -16,12 +16,40 @@ A single-file React app (`tournament.jsx`) for running round-robin football tour
 | Concern | Choice |
 |---|---|
 | Framework | React (hooks only, no external state lib) |
-| Build / Dev server | Vite + `@vitejs/plugin-react` |
-| Styling | Inline styles, dark theme |
-| Fonts | Google Fonts — DM Sans, Playfair Display |
+| Build / Dev server | Vite 7 + `@vitejs/plugin-react` |
+| Styling | CSS Modules (component-scoped) + CSS custom properties (dark theme) |
+| Fonts | Google Fonts — DM Sans, Playfair Display (via `src/index.css`) |
 | Persistence | `window.storage` (async get/set, key: `rr-tournaments-v3`) |
-| App entry point | Default export `TournamentApp` from `tournament.jsx` |
-| Dev entry point | `main.jsx` — mounts app, injects `localStorage`-backed `window.storage` mock |
+| App entry point | Default export `TournamentApp` from `tournament.jsx` (re-exports `src/tournament.jsx`) |
+| Dev entry point | `src/main.jsx` — mounts app, injects `localStorage`-backed `window.storage` mock |
+
+---
+
+## Project Structure
+
+```
+src/
+├── constants.js              # PHASES, COLORS
+├── index.css                 # Global styles, CSS custom properties, Google Fonts import
+├── main.jsx                  # Dev entry point
+├── tournament.jsx            # TournamentApp root component
+├── components/
+│   ├── index.js              # Barrel exports
+│   ├── Badge.jsx / .module.css
+│   ├── Button.jsx / .module.css
+│   ├── Card.jsx / .module.css
+│   ├── Input.jsx / .module.css
+│   ├── KnockoutView.jsx / .module.css
+│   ├── MatchCard.jsx / .module.css
+│   ├── SetupView.jsx / .module.css
+│   ├── StandingsTable.jsx / .module.css
+│   ├── TournamentListView.jsx / .module.css
+│   └── WinnerBanner.jsx / .module.css
+└── utils/
+    ├── helpers.js            # Pure functions: shuffle, uid, createMatch, computeTeamStats, generateRoundRobin
+    └── storage.js            # Storage layer: save, migrateIfNeeded, updateChannel
+tournament.jsx                # Re-export wrapper for host-environment compatibility
+```
 
 ---
 
@@ -33,7 +61,7 @@ npm run build   # production build
 npm run preview # preview production build
 ```
 
-`main.jsx` provides a `window.storage` mock backed by `localStorage` so the app works identically in the browser as it would in the host environment.
+`src/main.jsx` provides a `window.storage` mock backed by `localStorage` so the app works identically in the browser as it would in the host environment.
 
 ---
 
@@ -94,7 +122,7 @@ All handlers use `updateActive(updater)` — a private helper that maps over `to
 
 ---
 
-## Module-Level Helpers
+## Module-Level Helpers (`src/utils/helpers.js`)
 
 | Helper | Purpose |
 |---|---|
@@ -103,8 +131,14 @@ All handlers use `updateActive(updater)` — a private helper that maps over `to
 | `createMatch(id, home, away)` | Factory for match objects |
 | `computeTeamStats(teams, rounds)` | Accumulates P W D L GF GA Pts; returns sorted array (pts → GD → GF) |
 | `generateRoundRobin(teams)` | Circle-method draw |
+
+## Storage (`src/utils/storage.js`)
+
+| Export | Purpose |
+|---|---|
 | `save(envelope)` | Async write `{ tournaments, activeId }` to `window.storage` |
 | `migrateIfNeeded()` | On mount: reads v3 key; if absent, reads v2 key and migrates; else returns empty envelope |
+| `updateChannel` | BroadcastChannel instance for same-browser tab sync |
 
 ---
 

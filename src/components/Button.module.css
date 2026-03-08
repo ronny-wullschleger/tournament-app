@@ -1,0 +1,43 @@
+.btn {
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: 0.3px;
+  transition: all 0.2s;
+  padding: 10px 22px;
+  font-size: 14px;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.small {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+.primary {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.secondary {
+  background: var(--color-surface-alt);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.danger {
+  background: #ef444422;
+  color: var(--color-red);
+  border: 1px solid #ef444433;
+}
+
+.gold {
+  background: var(--color-gold);
+  color: var(--color-bg);
+}

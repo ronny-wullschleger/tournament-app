@@ -1,0 +1,12 @@
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 2px 12px #0004;
+}
+
+.glow {
+  border-color: #22d3ee44;
+  box-shadow: 0 0 30px #22d3ee11;
+}

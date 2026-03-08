@@ -1,0 +1,81 @@
+.wrapper {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.title {
+  font-family: 'Playfair Display', serif;
+  color: var(--color-text-primary);
+  margin: 0;
+  font-size: 26px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty {
+  text-align: center;
+  padding: 80px 0;
+}
+
+.emptyIcon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.emptyTitle {
+  font-family: 'Playfair Display', serif;
+  color: var(--color-text-primary);
+  margin: 0 0 8px;
+}
+
+.emptySubtitle {
+  color: var(--color-text-secondary);
+  margin-bottom: 24px;
+}
+
+.cardRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cardInfo {
+  flex: 1;
+  min-width: 200px;
+}
+
+.cardNameRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.cardName {
+  color: var(--color-text-primary);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.cardMeta {
+  color: var(--color-text-dim);
+  font-size: 12px;
+}
+
+.cardWinner {
+  margin-left: 12px;
+  color: var(--color-gold);
+}

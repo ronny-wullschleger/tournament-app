@@ -1,0 +1,101 @@
+.wrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.th {
+  padding: 10px 8px;
+  text-align: center;
+  color: var(--color-text-dim);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.thTeam {
+  text-align: left;
+}
+
+.td {
+  padding: 10px 8px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.row {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rowTop4 {
+  background: #22d3ee08;
+}
+
+.rankTop4 {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.rankOther {
+  color: var(--color-text-dim);
+  font-weight: 700;
+}
+
+.tdTeam {
+  text-align: left;
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.tdSecondary {
+  color: var(--color-text-secondary);
+}
+
+.tdWins {
+  color: var(--color-green);
+}
+
+.tdLosses {
+  color: var(--color-red);
+}
+
+.tdGdPositive {
+  color: var(--color-green);
+  font-weight: 600;
+}
+
+.tdGdNegative {
+  color: var(--color-red);
+  font-weight: 600;
+}
+
+.tdGdNeutral {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.tdPts {
+  color: var(--color-gold);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.qualifierDot {
+  color: var(--color-accent);
+  font-size: 10px;
+}
+
+.legend {
+  color: var(--color-text-dim);
+  font-size: 11px;
+  margin-top: 8px;
+}
+
+.legendDot {
+  color: var(--color-accent);
+}
