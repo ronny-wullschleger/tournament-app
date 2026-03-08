@@ -23,8 +23,8 @@ A single-page React app for running round-robin football tournaments with knocko
 | Concern | Choice |
 |---|---|
 | Framework | React 19 (hooks only) |
-| Build / Dev server | Vite + `@vitejs/plugin-react` |
-| Styling | Inline styles, dark theme |
+| Build / Dev server | Vite 7.3 + `@vitejs/plugin-react` |
+| Styling | Tailwind CSS 3.4 with custom dark theme |
 | Fonts | Google Fonts — DM Sans, Playfair Display |
 | Persistence | `window.storage` async key-value API |
 | Storage key | `rr-tournaments-v3` |
@@ -78,13 +78,18 @@ Viewers never need to reload the page. Navigation state (`activeId`) is kept loc
 
 ## Project Structure
 
-| File | Purpose |
+| File/Directory | Purpose |
 |---|---|
-| `tournament.jsx` | Entire app — all components, state, and logic |
+| `src/App.jsx` | Root component — uses `useTournament` hook, routes views |
+| `src/components/` | UI components (MatchCard, StandingsTable, SetupView, etc.) |
+| `src/hooks/useTournament.js` | All tournament state, persistence, and live update logic |
+| `src/utils/` | Pure helpers: tournament logic, storage, constants |
+| `src/styles/index.css` | Tailwind directives and font imports |
 | `main.jsx` | Dev entry point; mounts app, provides `window.storage` mock |
 | `index.html` | Minimal HTML shell for Vite |
 | `vite.config.js` | Vite + React plugin config |
-| `package.json` | Dependencies: React 19, Vite, `@vitejs/plugin-react` |
+| `tailwind.config.js` | Tailwind CSS configuration with custom theme |
+| `package.json` | Dependencies: React 19, Vite 7.3, Tailwind CSS 3.4 |
 | `PLAN.md` | Living technical spec — kept in sync with the code |
 | `.mcp.json` | MCP server config (Playwright) for browser-based testing |
 | `.claude/skills/tournament-test/SKILL.md` | Playwright smoke-test skill |
