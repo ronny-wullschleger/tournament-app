@@ -565,12 +565,15 @@ export default function TournamentApp() {
 
   // Load (with migration)
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const data = await migrateIfNeeded();
+      if (cancelled) return;
       setTournaments(data.tournaments);
       setActiveId(data.activeId);
       setLoading(false);
     })();
+    return () => { cancelled = true; };
   }, []);
 
   // Save on change
