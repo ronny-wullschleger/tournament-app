@@ -28,17 +28,27 @@ export const createMatch = (id, home, away) => ({
 });
 
 /**
- * Compute team statistics from rounds
- * Returns sorted array by: points → goal difference → goals for
+ * Compute team statistics from rounds.
+ * Sort priority (per points group):
+ *   1. Points
+ *   2. Head-to-head points (among tied teams)
+ *   3. Head-to-head goal difference
+ *   4. Head-to-head goals scored
+ *   5. Overall goal difference
+ *   6. Overall goals scored
+ *   7. Coin flip
  */
 export const computeTeamStats = (teams, rounds) => {
   const s = {};
   teams.forEach((t) => {
     s[t.id] = { id: t.id, name: t.name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
   });
+
+  const played = [];
   rounds.forEach((r) =>
     r.matches.forEach((m) => {
       if (!m.played) return;
+      played.push(m);
       const h = s[m.home], a = s[m.away];
       if (!h || !a) return;
       h.p++; a.p++;
@@ -49,7 +59,50 @@ export const computeTeamStats = (teams, rounds) => {
       else { h.d++; a.d++; h.pts++; a.pts++; }
     })
   );
-  return Object.values(s).sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf);
+
+  const stats = Object.values(s);
+  // Assign coin-flip value once per sort so it's stable within this call
+  stats.forEach(t => { t._coin = Math.random(); });
+
+  const h2hStats = (ids) => {
+    const idSet = new Set(ids);
+    const h = Object.fromEntries(ids.map(id => [id, { pts: 0, gd: 0, gf: 0 }]));
+    played.forEach(m => {
+      if (!idSet.has(m.home) || !idSet.has(m.away)) return;
+      h[m.home].gf += m.homeScore;
+      h[m.home].gd += m.homeScore - m.awayScore;
+      h[m.away].gf += m.awayScore;
+      h[m.away].gd += m.awayScore - m.homeScore;
+      if (m.homeScore > m.awayScore) h[m.home].pts += 3;
+      else if (m.homeScore < m.awayScore) h[m.away].pts += 3;
+      else { h[m.home].pts++; h[m.away].pts++; }
+    });
+    return h;
+  };
+
+  stats.sort((a, b) => b.pts - a.pts);
+
+  const result = [];
+  let i = 0;
+  while (i < stats.length) {
+    let j = i + 1;
+    while (j < stats.length && stats[j].pts === stats[i].pts) j++;
+    const group = stats.slice(i, j);
+    if (group.length > 1) {
+      const h = h2hStats(group.map(t => t.id));
+      group.sort((a, b) =>
+        (h[b.id].pts - h[a.id].pts) ||
+        (h[b.id].gd - h[a.id].gd) ||
+        (h[b.id].gf - h[a.id].gf) ||
+        ((b.gf - b.ga) - (a.gf - a.ga)) ||
+        (b.gf - a.gf) ||
+        (a._coin - b._coin)
+      );
+    }
+    result.push(...group);
+    i = j;
+  }
+  return result;
 };
 
 /**

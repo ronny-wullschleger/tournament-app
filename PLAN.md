@@ -190,7 +190,13 @@ Located in `src/hooks/`:
 - Produces `n-1` rounds for `n` teams (padded to even)
 
 ### Standings & Top-4 (`computeTeamStats`)
-Sort priority: Points → Goal Difference → Goals For.
+Teams are first sorted by points. Within a group of teams tied on points, the following tiebreakers are applied in order:
+1. Head-to-head points (mini-table of only matches between the tied teams)
+2. Head-to-head goal difference
+3. Head-to-head goals scored
+4. Overall goal difference
+5. Overall goals scored
+6. Coin flip (random, stable within a single sort call)
 
 ### Score Handlers
 All handlers (`handleScoreSave`, `handleSemiSave`, `handleFinalSave`) use `updateActive` with targeted immutable spreads.
