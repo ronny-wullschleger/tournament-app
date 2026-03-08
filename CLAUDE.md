@@ -47,7 +47,8 @@ If the Playwright MCP is not available in the current session, note it explicitl
 | `vite.config.js` | Vite + React plugin config |
 | `package.json` | Dependencies: React 19, Vite, `@vitejs/plugin-react` |
 | `PLAN.md` | Living spec — must stay in sync with code |
-| `.mcp.json` | Local MCP server config (Playwright); not committed |
+| `.mcp.json` | MCP server config (Playwright); committed to repo |
+| `.claude/skills/tournament-test/SKILL.md` | Local skill: smoke-test via `/tournament-test` |
 
 ## Dev environment
 - Start dev server: `npm run dev` → `http://localhost:5173`

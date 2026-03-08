@@ -1,4 +1,4 @@
-.claude/
-.mcp.json
+.claude/*
+!.claude/skills
 node_modules/
 dist/
