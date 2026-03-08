@@ -21,29 +21,20 @@ Use `mcp__playwright__browser_navigate` to open `http://localhost:5173`.
 
 ## Step 3 — Open Admin mode
 
-Click the `🔧 Admin` button.
+Click the `🔧 Admin` button. If a tournament is already open, click `← All Tournaments` first.
 
 ## Step 4 — Fill in 4 team names
 
-Fill the four team textboxes with these names (or any 4 distinct names you choose):
-- Ajax
-- Barcelona
-- Chelsea
-- Dortmund
+Click **＋ New Tournament**. Fill the four team textboxes with:
+- Ajax, Barcelona, Chelsea, Dortmund
 
 Then click **Generate Draw & Start →**.
 
-## Step 5 — Enter results for all group matches
+## Step 5 — Enter all group stage results in one batch
 
-There will be 3 rounds with 2 matches each (6 matches total). Scores are saved automatically when focus leaves a match card — there is **no confirm button**.
+Take a snapshot to get all spinbutton refs. Then use a **single `browser_fill_form` call** to fill all 12 spinbuttons at once (6 matches × 2 scores):
 
-For each match:
-1. Fill the left spinbutton (home score).
-2. Fill the right spinbutton (away score).
-3. Move focus away from the match (e.g. by clicking the next match's home spinbutton, or pressing Tab). This triggers the auto-save.
-4. After the last match (R3 M2), click the **📊 Standings** tab to trigger the blur and confirm the final save.
-
-Suggested scores (feel free to vary):
+Use these scores in order (home then away for each match):
 | Match | Home | Away |
 |-------|------|------|
 | R1 M1 | 2 | 1 |
@@ -53,9 +44,10 @@ Suggested scores (feel free to vary):
 | R3 M1 | 3 | 0 |
 | R3 M2 | 1 | 4 |
 
+After the single fill_form call, click **📊 Standings** tab to trigger blur and save all scores at once.
+
 ## Step 6 — Verify completion
 
-After all results are entered:
 - All 3 rounds should show a **Complete** badge.
 - The **🏟️ Generate Semifinals** button must be enabled (not disabled).
 

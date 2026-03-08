@@ -19,17 +19,15 @@ If the result is not `200`, inform the user to start the server with `npm run de
 
 - Navigate to `http://localhost:5173`.
 - Click **← All Tournaments** if a tournament is already open.
+- Click **🔧 Admin** to enable admin mode.
 - Click **＋ New Tournament**.
-- Enter these 4 team names: **Arsenal**, **Bayern**, **Celtic**, **Dynamo**.
+- Fill all 4 team name textboxes: **Arsenal**, **Bayern**, **Celtic**, **Dynamo**.
 - Click **Generate Draw & Start →**.
 
-## Step 3 — Enter all group stage results
+## Step 3 — Enter all group stage results in one batch
 
-There will be 3 rounds (6 matches total). Scores auto-save when focus leaves a match card — no confirm button.
+Take a snapshot to get all spinbutton refs. Use a **single `browser_fill_form` call** to fill all 12 spinbuttons at once (6 matches × 2 scores):
 
-For each match fill both spinbuttons then move focus to the next match's home spinbutton. After the very last match, click the **📊 Standings** tab to trigger the final blur/save.
-
-Use these scores:
 | Match | Home | Away |
 |-------|------|------|
 | R1 M1 | 3 | 0 |
@@ -39,56 +37,54 @@ Use these scores:
 | R3 M1 | 1 | 1 |
 | R3 M2 | 4 | 2 |
 
-## Step 4 — Verify group stage complete
+After the fill, click **📊 Standings** tab to trigger blur and save all at once.
 
-- All 3 rounds must show a **Complete** badge.
-- **🏟️ Generate Semifinals** button must be enabled.
+## Step 4 — Verify group stage and generate semifinals
+
+- All 3 rounds must show **Complete** badge.
+- Click **🏟️ Generate Semifinals** (must be enabled).
+- Verify the phase badge changes to **Semifinals**.
 - Take a screenshot of the Matches tab.
 
-## Step 5 — Generate Semifinals
+## Step 5 — Enter semifinal results in one batch
 
-- Click **🏟️ Generate Semifinals**.
-- The phase badge in the header must change to **Semifinals**.
-- The **🏆 Knockout** tab must now be visible — click it.
+Click the **🏆 Knockout** tab. Take a snapshot to get spinbutton refs for the 2 semi matches. Use a **single `browser_fill_form` call** to fill all 4 spinbuttons:
 
-## Step 6 — Enter semifinal results
-
-There are 2 semifinal matches. Fill both spinbuttons per match, move focus between matches to trigger save. After the last match, click somewhere else (e.g. the Standings tab) to trigger final save.
-
-Use these scores:
 | Match | Home | Away |
 |-------|------|------|
 | Semi 1 | 2 | 0 |
 | Semi 2 | 1 | 3 |
 
-## Step 7 — Verify semifinals complete and generate final
+After the fill, click **📊 Standings** tab to save.
 
-- Both semi matches must show saved scores.
-- **🏆 Generate Final** button must be enabled — click it.
-- The phase badge must change to **Finals**.
+## Step 6 — Verify semifinals and generate final
 
-## Step 8 — Enter final and 3rd place results
+- **🏆 Generate Final** must be enabled — click it.
+- Verify the phase badge changes to **Finals**.
 
-There are 2 matches (3rd place + final). Fill both. Move focus after each to save. After the last match click away.
+## Step 7 — Enter final and 3rd place results in one batch
 
-Use these scores:
+Click **🏆 Knockout** tab. Take a snapshot. Use a **single `browser_fill_form` call** to fill all 4 spinbuttons for the 3rd place and final matches:
+
 | Match | Home | Away |
 |-------|------|------|
 | 3rd place | 1 | 2 |
 | Final     | 3 | 1 |
 
-## Step 9 — Verify champion
+After the fill, click **📊 Standings** tab to save.
+
+## Step 8 — Verify champion
 
 - A **🏆 Winner** banner must appear showing the winning team.
-- The phase badge in the header must show **Completed**.
-- Take a full-page screenshot of the final state.
+- The phase badge must show **Completed**.
+- Take a full-page screenshot of the Knockout tab.
 
-## Step 10 — Report
+## Step 9 — Report
 
 Tell the user:
 - Teams entered
 - All group stage results (6 matches)
 - Semifinal results (2 matches)
 - Final + 3rd place results (2 matches)
-- The name of the crowned champion
+- The crowned champion
 - Pass/fail for each phase transition (group → semi → final → done)

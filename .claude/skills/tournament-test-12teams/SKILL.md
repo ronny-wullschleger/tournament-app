@@ -19,42 +19,33 @@ If the result is not `200`, inform the user to start the server with `npm run de
 
 - Navigate to `http://localhost:5173`.
 - Click **← All Tournaments** if a tournament is already open.
+- Click **🔧 Admin** to enable admin mode.
 - Click **＋ New Tournament**.
-- Click **+ Add Team** repeatedly until there are 12 team inputs (8 more clicks after the default 4).
-- Fill all 12 team name textboxes:
-  1. Ajax
-  2. Barcelona
-  3. Chelsea
-  4. Dortmund
-  5. Everton
-  6. Feyenoord
-  7. Galatasaray
-  8. Hamburg
-  9. Inter
-  10. Juventus
-  11. Köln
-  12. Liverpool
+- Click **+ Add Team** 8 times to reach 12 team inputs.
+- Fill all 12 team name textboxes in one `browser_fill_form` call:
+  1. Ajax, 2. Barcelona, 3. Chelsea, 4. Dortmund, 5. Everton, 6. Feyenoord,
+  7. Galatasaray, 8. Hamburg, 9. Inter, 10. Juventus, 11. Köln, 12. Liverpool
 - Click **Generate Draw & Start →**.
 
-## Step 3 — Enter all group stage results
+## Step 3 — Enter all group stage results round by round
 
-With 12 teams there are **11 rounds with 6 matches each = 66 matches total**.
+With 12 teams there are **11 rounds × 6 matches = 66 matches (132 spinbuttons total)**.
 
-Scores auto-save when focus leaves a match card. For each match fill both spinbuttons then move focus to the next match's home spinbutton. After the very last match of each round, move focus to the next round's first match or, after the final match of all, click the **📊 Standings** tab.
+Scores auto-save when focus leaves a match card. Process **one round at a time**:
 
-Use a simple repeating pattern for all 66 matches — alternate these two score lines and cycle through them:
-- Odd-numbered matches: **2 – 1**
-- Even-numbered matches: **1 – 1**
+For each round:
+1. Take a snapshot to get the spinbutton refs for that round's 12 inputs (6 matches × 2).
+2. Use a **single `browser_fill_form` call** to fill all 12 spinbuttons for that round at once.
+3. Use this alternating score pattern: odd-numbered matches → **2 : 1**, even-numbered matches → **1 : 1**.
 
-Work through each round sequentially: Round 1 through Round 11.
+After completing all 11 rounds, click the **📊 Standings** tab to trigger the final blur/save.
 
 ## Step 4 — Verify group stage complete
 
-After all 66 matches:
-- All 11 rounds must show a **Complete** badge (scroll down to check all rounds).
-- **🏟️ Generate Semifinals** button must be **enabled** (not disabled/greyed out).
+- All 11 rounds must show a **Complete** badge (scroll to check all).
+- **🏟️ Generate Semifinals** must be **enabled**.
 - Take a full-page screenshot of the Matches tab.
-- Switch to the **📊 Standings** tab and take a second screenshot showing the 12-team standings table.
+- Switch to **📊 Standings** and take a second screenshot of the 12-team table.
 
 ## Step 5 — Report
 
@@ -63,4 +54,4 @@ Tell the user:
 - Total matches entered (should be 66)
 - Whether all 11 rounds show Complete (pass/fail)
 - Whether the Generate Semifinals button is unlocked (pass/fail)
-- The top 4 teams from the standings table (who will advance to semis)
+- The top 4 teams from the standings (who advance to semis)
