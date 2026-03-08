@@ -30,6 +30,8 @@ export default function TournamentApp() {
     handleGenerateFinal,
     handleFinalSave,
     handleDelete,
+    handleResetToGroup,
+    handleResetToSemi,
   } = useTournament();
 
   const isAdmin = view === "admin";
@@ -214,6 +216,16 @@ export default function TournamentApp() {
                 {activeTournament.phase === PHASES.SEMI && (
                   <Button onClick={handleGenerateFinal} disabled={!allSemiPlayed} variant="gold">
                     🏆 Generate Final
+                  </Button>
+                )}
+                {(activeTournament.phase === PHASES.SEMI || activeTournament.phase === PHASES.FINAL || activeTournament.phase === PHASES.DONE) && (
+                  <Button variant="secondary" onClick={handleResetToGroup}>
+                    ↩️ Reset to Group Stage
+                  </Button>
+                )}
+                {(activeTournament.phase === PHASES.FINAL || activeTournament.phase === PHASES.DONE) && (
+                  <Button variant="secondary" onClick={handleResetToSemi}>
+                    ↩️ Reset to Semifinals
                   </Button>
                 )}
                 <Button variant="secondary" onClick={() => setActiveId("new")}>

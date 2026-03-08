@@ -248,8 +248,16 @@ activeId === <id>   → tournament detail UI (reads activeTournament)
 |---|---|
 | Generate Semifinals | Phase = `group` AND all group matches played |
 | Generate Final | Phase = `semi` AND both semis played |
+| Reset to Group Stage | Phase = `semi`, `final`, or `done` |
+| Reset to Semifinals | Phase = `final` or `done` |
 | ＋ New Tournament | Always available |
 | 🗑️ Delete Tournament | Always available; requires `window.confirm` |
+
+**Stage Reset Behavior:**
+- Resetting to an earlier stage deletes all later stages and their matches
+- Confirmation dialog is shown before reset
+- After reset, earlier stage scores become editable again (score modification restrictions are lifted)
+- Phase badge and available tabs update to reflect the new stage
 
 ---
 
