@@ -203,6 +203,22 @@ When a team is placed via tiebreaker, a `tiebreakNote` string is attached to its
 ### Score Handlers
 All handlers (`handleScoreSave`, `handleSemiSave`, `handleFinalSave`) use `updateActive` with targeted immutable spreads.
 
+### Score Modification Restrictions
+To ensure tournament integrity, score modifications are restricted based on the current tournament phase:
+
+| Current Phase | Can Modify Group Stage | Can Modify Semifinals | Can Modify Finals |
+|---|---|---|---|
+| `group` | ✅ Yes | ❌ No (not created yet) | ❌ No (not created yet) |
+| `semi` | ❌ No | ✅ Yes | ❌ No (not created yet) |
+| `final` | ❌ No | ❌ No | ✅ Yes |
+| `done` | ❌ No | ❌ No | ❌ No |
+
+**Implementation:**
+- `canModifyMatchStage(matchStage, currentPhase)` in `constants.js` validates whether a match can be modified
+- `MatchCard` receives `matchStage` and `currentPhase` props to determine editability
+- When modification is blocked, inputs are disabled and a lock icon (🔒) with explanation message is shown
+- The message reads: "Cannot modify scores from earlier stages while [current stage] are in progress. This ensures tournament integrity."
+
 ---
 
 ## Views & Tabs
