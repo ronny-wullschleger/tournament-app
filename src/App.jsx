@@ -30,6 +30,8 @@ export default function TournamentApp() {
     handleGenerateFinal,
     handleFinalSave,
     handleDelete,
+    handleResetToGroup,
+    handleResetToSemi,
   } = useTournament();
 
   const isAdmin = view === "admin";
@@ -148,7 +150,15 @@ export default function TournamentApp() {
                     </div>
                     <div className="flex flex-col gap-2">
                       {r.matches.map((m) => (
-                        <MatchCard key={m.id} match={m} teams={activeTournament.teams} isAdmin={isAdmin} onSave={handleScoreSave} />
+                        <MatchCard
+                          key={m.id}
+                          match={m}
+                          teams={activeTournament.teams}
+                          isAdmin={isAdmin}
+                          onSave={handleScoreSave}
+                          matchStage="group"
+                          currentPhase={activeTournament.phase}
+                        />
                       ))}
                     </div>
                   </div>
@@ -160,13 +170,37 @@ export default function TournamentApp() {
             {tab === "knockout" && (
               <div className="flex flex-col gap-6">
                 {activeTournament.semis && (
-                  <KnockoutView matches={activeTournament.semis} teams={activeTournament.teams} isAdmin={isAdmin} onSave={handleSemiSave} label="🏟️ Semifinals" />
+                  <KnockoutView
+                    matches={activeTournament.semis}
+                    teams={activeTournament.teams}
+                    isAdmin={isAdmin}
+                    onSave={handleSemiSave}
+                    label="🏟️ Semifinals"
+                    matchStage="semi"
+                    currentPhase={activeTournament.phase}
+                  />
                 )}
                 {activeTournament.thirdPlace && (
-                  <KnockoutView matches={[activeTournament.thirdPlace]} teams={activeTournament.teams} isAdmin={isAdmin} onSave={handleFinalSave} label="🥉 Third Place" />
+                  <KnockoutView
+                    matches={[activeTournament.thirdPlace]}
+                    teams={activeTournament.teams}
+                    isAdmin={isAdmin}
+                    onSave={handleFinalSave}
+                    label="🥉 Third Place"
+                    matchStage="final"
+                    currentPhase={activeTournament.phase}
+                  />
                 )}
                 {activeTournament.final && (
-                  <KnockoutView matches={[activeTournament.final]} teams={activeTournament.teams} isAdmin={isAdmin} onSave={handleFinalSave} label="🏆 Final" />
+                  <KnockoutView
+                    matches={[activeTournament.final]}
+                    teams={activeTournament.teams}
+                    isAdmin={isAdmin}
+                    onSave={handleFinalSave}
+                    label="🏆 Final"
+                    matchStage="final"
+                    currentPhase={activeTournament.phase}
+                  />
                 )}
               </div>
             )}
@@ -182,6 +216,16 @@ export default function TournamentApp() {
                 {activeTournament.phase === PHASES.SEMI && (
                   <Button onClick={handleGenerateFinal} disabled={!allSemiPlayed} variant="gold">
                     🏆 Generate Final
+                  </Button>
+                )}
+                {(activeTournament.phase === PHASES.SEMI || activeTournament.phase === PHASES.FINAL || activeTournament.phase === PHASES.DONE) && (
+                  <Button variant="secondary" onClick={handleResetToGroup}>
+                    ↩️ Reset to Group Stage
+                  </Button>
+                )}
+                {(activeTournament.phase === PHASES.FINAL || activeTournament.phase === PHASES.DONE) && (
+                  <Button variant="secondary" onClick={handleResetToSemi}>
+                    ↩️ Reset to Semifinals
                   </Button>
                 )}
                 <Button variant="secondary" onClick={() => setActiveId("new")}>

@@ -187,6 +187,29 @@ export const useTournament = () => {
     setTab("standings");
   };
 
+  const handleResetToGroup = () => {
+    if (!window.confirm("Reset to group stage? This will delete semifinals and finals.")) return;
+    updateActive(() => ({
+      phase: PHASES.GROUP,
+      semis: null,
+      final: null,
+      thirdPlace: null,
+      winner: null,
+    }));
+    setTab("matches");
+  };
+
+  const handleResetToSemi = () => {
+    if (!window.confirm("Reset to semifinals? This will delete the finals.")) return;
+    updateActive(() => ({
+      phase: PHASES.SEMI,
+      final: null,
+      thirdPlace: null,
+      winner: null,
+    }));
+    setTab("knockout");
+  };
+
   return {
     tournaments,
     activeId,
@@ -206,5 +229,7 @@ export const useTournament = () => {
     handleGenerateFinal,
     handleFinalSave,
     handleDelete,
+    handleResetToGroup,
+    handleResetToSemi,
   };
 };
