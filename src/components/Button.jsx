@@ -1,7 +1,7 @@
 export const Button = ({ children, onClick, variant = "primary", disabled, small, className = "" }) => {
   const baseClass = `
     rounded-lg border-none cursor-pointer font-bold font-sans tracking-wide transition-all
-    ${small ? 'px-3.5 py-1.5 text-xs' : 'px-5.5 py-2.5 text-sm'}
+    ${small ? 'px-3.5 py-1.5 text-xs' : 'px-6 py-2.5 text-sm'}
     ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:opacity-90'}
   `;
 

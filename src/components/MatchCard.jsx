@@ -45,7 +45,7 @@ export const MatchCard = ({ match, teams, isAdmin, onSave }) => {
             min="0"
             value={hs}
             onChange={(e) => setHs(e.target.value)}
-            className="w-11 text-center bg-bg border border-border rounded-md text-textPrimary text-lg font-extrabold py-1.5 font-sans"
+            className="w-11 text-center bg-bg border border-border rounded-md text-textPrimary text-lg font-extrabold py-1.5 font-sans [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
           <span className="text-textDim font-extrabold">:</span>
           <input
@@ -53,7 +53,7 @@ export const MatchCard = ({ match, teams, isAdmin, onSave }) => {
             min="0"
             value={as_}
             onChange={(e) => setAs(e.target.value)}
-            className="w-11 text-center bg-bg border border-border rounded-md text-textPrimary text-lg font-extrabold py-1.5 font-sans"
+            className="w-11 text-center bg-bg border border-border rounded-md text-textPrimary text-lg font-extrabold py-1.5 font-sans [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
       ) : (
