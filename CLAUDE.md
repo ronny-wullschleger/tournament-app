@@ -30,6 +30,18 @@ If the Playwright MCP is not available in the current session, note it explicitl
 - Internal refactors with no behaviour change
 - Bug fixes that don't change documented behaviour
 
+## Never commit sensitive data (mandatory)
+Before every commit, verify that none of the staged files contain:
+- API keys, tokens, secrets, or passwords
+- `.env` files or any file named `*.env`, `*.secret`, `*.key`, `*.pem`
+- Personal data (emails, names, credentials) not belonging to the app itself
+- Private configuration that differs per developer (local paths, machine-specific settings)
+
+If any staged file contains sensitive data: **unstage it, add it to `.gitignore`, and abort the commit.**
+
+Files allowed to contain configuration:
+- `.mcp.json` — only MCP server definitions (no tokens or credentials)
+
 ## Commit message convention
 - `feat: <description>` — new feature
 - `fix: <description>` — bug fix
