@@ -50,6 +50,19 @@ Files allowed to contain configuration:
 - `docs: <description>` — PLAN.md or docs only
 - `chore: <description>` — tooling, config, dependencies
 
+## Architecture docs sync (mandatory)
+`docs/architecture.excalidraw` and `docs/architecture.png` must stay in sync with the actual architecture.
+
+**Update both files before committing when a change affects:**
+- How data flows between components (save, storage, broadcast)
+- New channels, mechanisms, or layers (e.g. adding WebSockets, a server, a new client type)
+- Renaming of key functions or APIs shown in the diagram
+
+**To update:**
+1. Edit `docs/architecture.excalidraw` (open at excalidraw.com or modify the JSON directly)
+2. Re-export a screenshot to `docs/architecture.png` using Playwright MCP (navigate to excalidraw.com, load the file, screenshot)
+3. Commit both files together with the code change
+
 ## Project structure
 | File | Purpose |
 |---|---|
@@ -61,6 +74,8 @@ Files allowed to contain configuration:
 | `PLAN.md` | Living spec — must stay in sync with code |
 | `.mcp.json` | MCP server config (Playwright); committed to repo |
 | `.claude/skills/tournament-test/SKILL.md` | Local skill: smoke-test via `/tournament-test` |
+| `docs/architecture.excalidraw` | Editable architecture diagram source |
+| `docs/architecture.png` | Architecture diagram image (embedded in README) |
 
 ## Dev environment
 - Start dev server: `npm run dev` → `http://localhost:5173`
