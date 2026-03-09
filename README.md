@@ -119,6 +119,56 @@ On first load the app checks for existing `rr-tournament-v2` data and migrates i
 
 ---
 
+## Deployment
+
+### How to Register a Subdomain (e.g. app.yourdomain.ch) on GoDaddy for Azure Static Web App
+
+Steps to add a new subdomain like `app.yourdomain.ch` to an Azure Static Web App (using CNAME validation):
+
+1. **In Azure Portal (start here – get the target hostname)**
+   - Open your Static Web App resource → **Settings** → **Custom domains**
+   - Click **+ Add** → **Custom domain on other DNS**
+   - Enter the full subdomain: `app.yourdomain.ch`
+   - Click **Next**
+   - Azure displays the required CNAME target (looks like `random-name-123456789.x.azurestaticapps.net` – copy this exact value; it's unique to your app).
+   - Keep this page open.
+
+2. **In GoDaddy DNS (add the CNAME record)**
+   - Log in to GoDaddy → Manage DNS for yourdomain.ch
+   - Add a new record:
+     - **Type**: CNAME
+     - **Host/Name**: `app` (only the subdomain part – do **not** include .yourdomain.ch)
+     - **Value/Points to**: Paste the full Azure target (e.g. `random-name-123456789.x.azurestaticapps.net`) – no http://, no trailing slash or dot unless GoDaddy requires it
+     - **TTL**: 1 hour (or 300–600 seconds for quicker propagation during setup)
+   - Save the changes.
+
+3. **Finish in Azure Portal**
+   - Back in the portal, click **Validate** (or **Add**).
+   - Azure checks the CNAME record in public DNS → once it shows **Validated**, confirm/add the domain.
+   - Status updates to **Validated** / **Custom domain**.
+   - Azure automatically provisions and attaches a free DigiCert SSL certificate for the subdomain (SAN-based).
+   - Propagation: usually 5–60 minutes (DNS changes + cert rollout). Check with:
+     ```
+     nslookup app.yourdomain.ch
+     ```
+     → should resolve to Azure IPs (not old hosts)
+     ```
+     curl -Iv https://app.yourdomain.ch
+     ```
+     → should succeed with a valid cert and HTTP response
+
+4. **Things to avoid (lessons learned)**
+   - Never point the subdomain to `yourdomain.ch.` (causes loops and cert mismatch errors).
+   - Use the exact CNAME target shown in **your** app – it's app-specific.
+   - Delete any old/conflicting records (e.g. pointing to AWS or elsewhere).
+   - For apex domains (`yourdomain.ch`) or `www` → setup differs (often requires A/ALIAS records instead of plain CNAME).
+
+Result: `https://app.yourdomain.ch` loads securely with a valid SSL cert. Azure handles automatic renewals.
+
+*Last tested: March 2026 on a Static Web App.*
+
+---
+
 ## Planned Features
 
 - Penalty shootout support for drawn knockout matches
